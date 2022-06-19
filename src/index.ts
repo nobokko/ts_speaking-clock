@@ -14,14 +14,12 @@ CronExecuter.append('0 * * * *', () => {
     const dt = new Date();
     const utterThis = new SpeechSynthesisUtterance(`${dt.getHours()}時です。`);
     synth.speak(utterThis);
+    globalThis.document.querySelector('body').appendChild((() => {
+        const e = globalThis.document.createElement('div');
+        e.innerText = utterThis.text;
+        return e;
+    })());
 }, '時報');
-
-CronExecuter.append('* * * * *', () => {
-    const dt = new Date();
-    console.log(`${dt.getHours()}時です。`);
-    const utterThis = new SpeechSynthesisUtterance(`${dt.getHours()}時です。`);
-    synth.speak(utterThis);
-}, 'x時報x');
 
 CronExecuter.append('30 * * * *', () => {
     console.log('半時報');
