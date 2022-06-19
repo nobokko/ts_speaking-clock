@@ -1,0 +1,237 @@
+import * as Parser from "./settingParser";
+
+type CronTaskResult = void | Promise<any>;
+type CronTaskA = () => CronTaskResult;
+type CronTaskB = (cronTime: Parser.CronTime) => CronTaskResult;
+type CronTask = CronTaskA | CronTaskB;
+
+function isCronTaskA(task: CronTask): task is CronTaskA {
+    return task.length == 0;
+}
+
+function isCronTaskB(task: CronTask): task is CronTaskB {
+    return task.length == 1;
+}
+
+function currentDate() {
+    return new Date(Date.now());
+}
+
+type CronLastExecuteTime = {
+    分: number,
+    時: number,
+    日: number,
+    月: number,
+    曜日: number,
+};
+
+type CronScheduleInfo = {
+    id: number,
+    label?: string,
+    description?: string,
+    cronTime: Parser.CronTime,
+    task: CronTask,
+    lastCronExecute?: CronLastExecuteTime,
+    nextDate: Date,
+};
+
+const schedule: CronScheduleInfo[] = [];
+
+function start__time() {
+    const now = currentDate();
+    const next = new Date(now);
+    next.setMilliseconds(1000);
+    next.setSeconds(60);
+
+    return next.getTime() - now.getTime();
+}
+
+function start__exec() {
+    new Promise(() => {
+        if (schedule.length == 0) {
+            return;
+        }
+        const now = currentDate();
+        while (schedule[0].nextDate.getTime() <= now.getTime()) {
+            now.setMilliseconds(1);
+            const targetSchedule = schedule[0];
+            const lastCronExecute = {
+                分: targetSchedule.nextDate.getMinutes(),
+                時: targetSchedule.nextDate.getHours(),
+                日: targetSchedule.nextDate.getDate(),
+                月: targetSchedule.nextDate.getMonth() + 1,
+                曜日: targetSchedule.nextDate.getDay(),
+            };
+            new Promise((resolve, reject) => {
+                if (isCronTaskA(targetSchedule.task)) {
+                    resolve(targetSchedule.task());
+                } else if (isCronTaskB(targetSchedule.task)) {
+                    resolve(targetSchedule.task({ ...targetSchedule.cronTime }));
+                }
+            }).then(() => {
+                console.debug(`finish task : ${targetSchedule.label}`)
+            });
+            targetSchedule.nextDate = nextTime(targetSchedule.cronTime, now, lastCronExecute);
+            targetSchedule.lastCronExecute = lastCronExecute;
+            // console.debug(`next : ${targetSchedule.nextDate}`)
+            scheduleSort();
+        }
+    });
+    setTimeout(start__exec, start__time());
+}
+
+let started = false;
+export function start() {
+    if (!started) {
+        started = true;
+        scheduleSort();
+        start__exec();
+    }
+}
+
+export function status() {
+    return {
+        started: started,
+        sequence: sequence,
+    };
+}
+
+function scheduleSort() {
+    schedule.sort((a, b) => {
+        return a.nextDate.getTime() - b.nextDate.getTime();
+    });
+}
+
+let sequence = 1;
+
+export function append(setting: string | Parser.CronTime, task: CronTask, label?: string, description?: string): number {
+    const cronTime = typeof setting == 'string' ? Parser.parse(setting) : setting;
+    const nextDate = nextTime(cronTime, currentDate());
+    schedule.push({ id: sequence++, cronTime, task, label, description, nextDate });
+    // console.debug(schedule);
+
+    if (started) {
+        scheduleSort();
+    }
+
+    return 0;
+}
+
+function nextTime(crontime: Parser.CronTime, now: Date, lastCronExecute?: CronLastExecuteTime) {
+    const nextDate = new Date(now);
+    // 未来方向にミリ秒をキレイにする
+    nextDate.setMilliseconds(1000);
+    // 未来方向に秒をキレイにする（結果基本的に実行時間より分が１分進む）
+    nextDate.setSeconds(60);
+
+    const calc = (単位: keyof (Parser.CronTime), min: number, max: () => number) => {
+        const dateProperties = (() => {
+            switch (単位) {
+                case '分':
+                    return {
+                        getter: () => nextDate.getMinutes(),
+                        setter: (value: number) => nextDate.setMinutes(value),
+                    };
+                case '時':
+                    return {
+                        getter: () => nextDate.getHours(),
+                        setter: (value: number) => nextDate.setHours(value),
+                    };
+                case '日':
+                    return {
+                        getter: () => nextDate.getDate(),
+                        setter: (value: number) => nextDate.setDate(value),
+                    };
+                case '月':
+                    return {
+                        getter: () => { return nextDate.getMonth() + 1; },
+                        setter: (value: number) => nextDate.setMonth(value - 1),
+                    };
+            }
+        })();
+        let valuechange = false;
+        if (!lastCronExecute) {
+            const nextvalue = dateProperties.getter();
+            if (crontime[単位].targets.indexOf(nextvalue) != -1) {
+                // 一旦fix
+            } else {
+                valuechange = true;
+                const pos = [...crontime[単位].targets, nextvalue].sort((a, b) => a - b).indexOf(nextvalue);
+                if (pos == crontime[単位].targets.length) {
+                    // 時間内に処理対象が無い為繰り上げて最初の時間を適用
+                    dateProperties.setter((max() + 1 - min) + crontime[単位].targets[0]);
+                } else {
+                    dateProperties.setter(crontime[単位].targets[pos]);
+                }
+            }
+        } else {
+            // ※ この時点ではmax超かの場合がある
+            if (lastCronExecute[単位] == dateProperties.getter()) {
+                // 一旦fix
+            } else {
+                const nextvalue = lastCronExecute[単位] + (crontime[単位].step ?? 1);
+                if (crontime[単位].targets.indexOf(nextvalue) != -1) {
+                    // ※ targetsには通常max超かの値は含まれない
+                    dateProperties.setter(nextvalue);
+                } else {
+                    valuechange = true;
+                    const pos = [...crontime[単位].targets, nextvalue].sort((a, b) => a - b).indexOf(nextvalue);
+                    if (pos == crontime[単位].targets.length && nextvalue > max() && crontime[単位].targets.indexOf(nextvalue % (max() + 1)) != -1) {
+                        // ※ targetsには通常max超かの値が含まれる
+                        dateProperties.setter(nextvalue);
+                    } else {
+                        // 実行ステップに実行可能時間が無い為、それ以降の時間を設定する
+                        if (pos != crontime[単位].targets.length) {
+                            dateProperties.setter(crontime[単位].targets[pos]);
+                        } else {
+                            dateProperties.setter((max() + 1) + crontime[単位].targets[0]);
+                        }
+                    }
+                }
+            }
+        }
+
+        return { valuechange, nextDate: new Date(nextDate) };
+    };
+    const d = [
+        calc('分', 0, () => 59),
+        calc('時', 0, () => 23),
+    ];
+    if (d[1].valuechange && d[0].nextDate.getHours() != d[1].nextDate.getHours()) {
+        nextDate.setMinutes(crontime.分.targets[0]);
+    }
+    d.push(calc('日', 1, () => {
+        const d = new Date(nextDate);
+        // 翌月の1～4日くらい
+        d.setDate(32);
+        // 当月末
+        d.setDate(0);
+
+        return d.getDate();
+    }));
+    if (d[2].valuechange && d[1].nextDate.getDate() != d[2].nextDate.getDate()) {
+        nextDate.setHours(crontime.時.targets[0]);
+        nextDate.setMinutes(crontime.分.targets[0]);
+    }
+    d.push(calc('月', 0, () => 11));
+    if (d[3].valuechange && d[2].nextDate.getMonth() != d[3].nextDate.getMonth()) {
+        nextDate.setDate(crontime.日.targets[0]);
+        nextDate.setHours(crontime.時.targets[0]);
+        nextDate.setMinutes(crontime.分.targets[0]);
+    }
+
+    return nextDate;
+}
+
+export const testOnlyExports = {
+    isCronTaskA,
+    isCronTaskB,
+    currentDate,
+    start__time,
+    start__exec,
+    scheduleSort,
+    nextTime,
+    vars: {
+        schedule,
+    },
+};
