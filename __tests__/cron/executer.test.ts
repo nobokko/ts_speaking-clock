@@ -228,7 +228,7 @@ describe('nextTime 2', () => {
         expect(result.toUTCString()).toBe('Sun, 19 Jun 2022 21:41:00 GMT');
     });
 
-    it('30分後が動作設定時間じゃない', () => {
+    it('30分後が動作設定時間ではない', () => {
         const lastExecuteDate = new Date(2022, 6 - 1, 19, 21, 11, 0, 0);
         const targetDate = new Date(2022, 6 - 1, 19, 21, 11, 1, 1);
         const result = CronExecuter.testOnlyExports.nextTime(CronSettingParser.parse('0-29/30 * * * *'), targetDate, {
@@ -254,7 +254,7 @@ describe('nextTime 2', () => {
         expect(result.toUTCString()).toBe('Sun, 19 Jun 2022 22:11:00 GMT');
     });
 
-    it('基本的に3分毎だけど3分後は動作設定時刻じゃない', () => {
+    it('基本的に3分毎だけど3分後は動作設定時刻ではない', () => {
         const lastExecuteDate = new Date(2022, 6 - 1, 19, 21, 11, 0, 0);
         const targetDate = new Date(2022, 6 - 1, 19, 21, 11, 1, 1);
         const result = CronExecuter.testOnlyExports.nextTime(CronSettingParser.parse('41-13/3 * * * *'), targetDate, {
