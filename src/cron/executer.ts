@@ -1,5 +1,22 @@
 import * as Parser from "./settingParser";
 
+const eventHandlers = {
+    // xxx[Schedule]は省略する
+    start: Array<CallableFunction>(),
+    update: Array<CallableFunction>(),
+    beforeExecute: Array<CallableFunction>(),
+    afterExecute: Array<CallableFunction>(),
+};
+type CronEvent = keyof typeof eventHandlers;
+export function addEventListener(event: CronEvent, listener: CallableFunction) {
+    eventHandlers[event].push(listener);
+}
+export function removeEventListener(event: CronEvent, listener: CallableFunction) {
+    eventHandlers[event] = eventHandlers[event].filter(eventListener => {
+        return listener != eventListener;
+    });
+}
+
 type CronTaskResult = void | Promise<any>;
 type CronTaskA = () => CronTaskResult;
 type CronTaskB = (cronTime: Parser.CronTime) => CronTaskResult;
@@ -62,15 +79,19 @@ function start__exec() {
                 月: targetSchedule.nextDate.getMonth() + 1,
                 曜日: targetSchedule.nextDate.getDay(),
             };
-            new Promise((resolve, reject) => {
-                if (isCronTaskA(targetSchedule.task)) {
-                    resolve(targetSchedule.task());
-                } else if (isCronTaskB(targetSchedule.task)) {
-                    resolve(targetSchedule.task({ ...targetSchedule.cronTime }));
-                }
-            }).then(() => {
-                console.debug(`finish task : ${targetSchedule.label}`)
-            });
+            Promise.all(eventHandlers.beforeExecute.map(listener => new Promise((resolve) => { resolve(listener()); })))
+                .then(() => {
+                    return new Promise((resolve) => {
+                        if (isCronTaskA(targetSchedule.task)) {
+                            resolve(targetSchedule.task());
+                        } else if (isCronTaskB(targetSchedule.task)) {
+                            resolve(targetSchedule.task({ ...targetSchedule.cronTime }));
+                        }
+                    });
+                })
+                .then(() => {
+                    return Promise.all(eventHandlers.afterExecute.map(listener => new Promise((resolve) => { resolve(listener()); })));
+                });
             targetSchedule.nextDate = nextTime(targetSchedule.cronTime, now, lastCronExecute);
             targetSchedule.lastCronExecute = lastCronExecute;
             // console.debug(`next : ${targetSchedule.nextDate}`)
@@ -84,6 +105,9 @@ let started = false;
 export function start() {
     if (!started) {
         started = true;
+        new Promise(() => {
+            eventHandlers.start.forEach(listener => listener());
+        });
         scheduleSort();
         start__exec();
     }
@@ -93,13 +117,21 @@ export function status() {
     return {
         started: started,
         sequence: sequence,
+        schedule: schedule.map(info => info.id),
     };
 }
 
 function scheduleSort() {
+    const before = schedule.map(s => `${s.id}_${s.nextDate}`).join(',');
     schedule.sort((a, b) => {
         return a.nextDate.getTime() - b.nextDate.getTime();
     });
+    const after = schedule.map(s => `${s.id}_${s.nextDate}`).join(',');
+    if (before != after) {
+        new Promise(() => {
+            eventHandlers.update.forEach(listener => listener());
+        });
+    }
 }
 
 let sequence = 1;
@@ -107,14 +139,29 @@ let sequence = 1;
 export function append(setting: string | Parser.CronTime, task: CronTask, label?: string, description?: string): number {
     const cronTime = typeof setting == 'string' ? Parser.parse(setting) : setting;
     const nextDate = nextTime(cronTime, currentDate());
-    schedule.push({ id: sequence++, cronTime, task, label, description, nextDate });
+    const id = sequence++;
+    schedule.push({ id: id, cronTime, task, label, description, nextDate });
     // console.debug(schedule);
 
     if (started) {
         scheduleSort();
     }
 
-    return 0;
+    return id;
+}
+
+export function remove(...ids: number[]) {
+    const targets:number[] = [];
+    schedule.forEach((info, index) => {
+        if (ids.indexOf(info.id) >= 0) {
+            targets.push(index);
+        }
+    });
+    while (targets.length) {
+        // const after = schedule.slice(targets.pop(), 1);
+        schedule.splice(targets.pop(), 1);
+    }
+    scheduleSort();
 }
 
 function nextTime(crontime: Parser.CronTime, now: Date, lastCronExecute?: CronLastExecuteTime) {
@@ -232,6 +279,7 @@ export const testOnlyExports = {
     scheduleSort,
     nextTime,
     vars: {
+        eventHandlers,
         schedule,
     },
 };

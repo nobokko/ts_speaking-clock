@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "description": "My webpack project",
-  "name": "my-webpack-project",
+  "description": "speaking clock for TypeScript",
+  "name": "speaking-clock-for-typescript",
   "scripts": {
     "reinstall": "yarn install --check-files",
     "reinstall:dev": "yarn install --check-files -D",

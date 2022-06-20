@@ -12,8 +12,10 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
-    while (CronExecuter.testOnlyExports.vars.schedule.length > 0) {
-        CronExecuter.testOnlyExports.vars.schedule.pop();
+    CronExecuter.testOnlyExports.vars.schedule.length = 0;
+
+    for (const eventHandler of Object.values(CronExecuter.testOnlyExports.vars.eventHandlers)) {
+        eventHandler.length = 0;
     }
 });
 
@@ -28,6 +30,84 @@ describe('append', () => {
         const result = CronExecuter.append(CronSettingParser.parse('* * * * *'), () => {});
         expect(CronExecuter.testOnlyExports.vars.schedule.length).toBe(1);
         expect(CronExecuter.testOnlyExports.vars.schedule[0].nextDate.getHours()).toBe(22);
+    });
+});
+
+describe('remove', () => {
+    it('remove', () => {
+        const id1 = CronExecuter.append('* * * * *', () => {});
+        const id2 = CronExecuter.append('* * * * *', () => {});
+        const id3 = CronExecuter.append('* * * * *', () => {});
+        expect(CronExecuter.testOnlyExports.vars.schedule.length).toBe(3);
+        CronExecuter.remove(id2);
+        expect(CronExecuter.testOnlyExports.vars.schedule.length).toBe(2);
+        CronExecuter.remove(id2);
+        expect(CronExecuter.testOnlyExports.vars.schedule.length).toBe(2);
+        CronExecuter.remove(100);
+        expect(CronExecuter.testOnlyExports.vars.schedule.length).toBe(2);
+        CronExecuter.remove(id1, id3);
+        expect(CronExecuter.testOnlyExports.vars.schedule.length).toBe(0);
+    });
+});
+
+describe('addEventListener', () => {
+    it('addEventListener start', () => {
+        expect(CronExecuter.testOnlyExports.vars.eventHandlers.start.length).toBe(0);
+        expect(CronExecuter.testOnlyExports.vars.eventHandlers.update.length).toBe(0);
+        CronExecuter.addEventListener('start', () => {});
+        expect(CronExecuter.testOnlyExports.vars.eventHandlers.start.length).toBe(1);
+        expect(CronExecuter.testOnlyExports.vars.eventHandlers.update.length).toBe(0);
+    });
+
+    it('addEventListener update', () => {
+        expect(CronExecuter.testOnlyExports.vars.eventHandlers.start.length).toBe(0);
+        expect(CronExecuter.testOnlyExports.vars.eventHandlers.update.length).toBe(0);
+        CronExecuter.addEventListener('update', () => {});
+        expect(CronExecuter.testOnlyExports.vars.eventHandlers.start.length).toBe(0);
+        expect(CronExecuter.testOnlyExports.vars.eventHandlers.update.length).toBe(1);
+    });
+
+    it('addEventListener beforeExecute', () => {
+        expect(CronExecuter.testOnlyExports.vars.eventHandlers.beforeExecute.length).toBe(0);
+        CronExecuter.addEventListener('beforeExecute', () => {});
+        expect(CronExecuter.testOnlyExports.vars.eventHandlers.beforeExecute.length).toBe(1);
+    });
+
+    it('addEventListener afterExecute', () => {
+        expect(CronExecuter.testOnlyExports.vars.eventHandlers.afterExecute.length).toBe(0);
+        CronExecuter.addEventListener('afterExecute', () => {});
+        expect(CronExecuter.testOnlyExports.vars.eventHandlers.afterExecute.length).toBe(1);
+    });
+});
+
+describe('removeEventListener', () => {
+    it('removeEventListener start', () => {
+        const startListener = () => {};
+        CronExecuter.addEventListener('start', startListener);
+        CronExecuter.addEventListener('update', () => {});
+        expect(CronExecuter.testOnlyExports.vars.eventHandlers.start.length).toBe(1);
+        expect(CronExecuter.testOnlyExports.vars.eventHandlers.update.length).toBe(1);
+        CronExecuter.removeEventListener('start', startListener);
+        expect(CronExecuter.testOnlyExports.vars.eventHandlers.start.length).toBe(0);
+        expect(CronExecuter.testOnlyExports.vars.eventHandlers.update.length).toBe(1);
+    });
+
+    it('removeEventListener update', () => {
+        const updateListener = () => {};
+        CronExecuter.addEventListener('start', () => {});
+        CronExecuter.addEventListener('update', updateListener);
+        expect(CronExecuter.testOnlyExports.vars.eventHandlers.start.length).toBe(1);
+        expect(CronExecuter.testOnlyExports.vars.eventHandlers.update.length).toBe(1);
+        CronExecuter.removeEventListener('update', updateListener);
+        expect(CronExecuter.testOnlyExports.vars.eventHandlers.start.length).toBe(1);
+        expect(CronExecuter.testOnlyExports.vars.eventHandlers.update.length).toBe(0);
+    });
+
+    it('removeEventListener 同じ処理だけど別定義', () => {
+        CronExecuter.addEventListener('start', () => {});
+        expect(CronExecuter.testOnlyExports.vars.eventHandlers.start.length).toBe(1);
+        CronExecuter.removeEventListener('start', () => {});
+        expect(CronExecuter.testOnlyExports.vars.eventHandlers.start.length).toBe(1);
     });
 });
 
@@ -93,6 +173,17 @@ describe('start', () => {
         CronExecuter.append('* * * 7 *', () => {}, 'this');
         CronExecuter.append('* * * 9 *', () => {});
         expect(CronExecuter.testOnlyExports.vars.schedule[0].label).toBe('this');
+    });
+});
+
+describe('status', () => {
+    it('status', () => {
+        expect(CronExecuter.status().schedule.length).toBe(0);
+        const task = () => {};
+        const id = CronExecuter.append('* * * * *', task);
+        expect(CronExecuter.status().schedule.length).toBe(1);
+        CronExecuter.remove(id);
+        expect(CronExecuter.status().schedule.length).toBe(0);
     });
 });
 

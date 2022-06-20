@@ -1,13 +1,23 @@
 // import * as cronSettingParser from "./cron/settingParser";
 import * as CronExecuter from "./cron/executer";
 
-console.log("Hello World!");
-
-CronExecuter.start();
-
 const synth = window.speechSynthesis;
 
-synth.speak(new SpeechSynthesisUtterance(`開始します。`));
+CronExecuter.addEventListener("start", () => {
+    synth.speak(new SpeechSynthesisUtterance(`開始します。`));
+});
+
+CronExecuter.addEventListener("beforeExecute", () => {
+    console.debug('begin task.');
+});
+
+CronExecuter.addEventListener("afterExecute", () => {
+    console.debug('end task.');
+});
+
+CronExecuter.addEventListener("update", () => {
+    console.debug('sorted.');
+});
 
 CronExecuter.append('0 * * * *', () => {
     console.log('時報');
@@ -47,3 +57,5 @@ CronExecuter.append('*/3 * * * *', () => {
     const utterThis = new SpeechSynthesisUtterance(`三分経過。`);
     synth.speak(utterThis);
 }, '三分毎');
+
+CronExecuter.start();

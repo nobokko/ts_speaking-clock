@@ -22,7 +22,7 @@ const config = {
     },
     plugins: [
         new HtmlWebpackPlugin({
-            template: 'index.html',
+            template: 'public/html/index.html',
         }),
 
         // Add your plugins here
@@ -62,7 +62,18 @@ module.exports = () => {
         config.mode = 'production';
 
 
-        config.plugins.push(new WorkboxWebpackPlugin.GenerateSW());
+        config.plugins.push(new WorkboxWebpackPlugin.GenerateSW({
+            runtimeCaching: [
+                {
+                    urlPattern: /.*\.js/,
+                    handler: 'NetworkFirst',
+                },
+                {
+                    urlPattern: /.*\.html/,
+                    handler: 'NetworkFirst',
+                },
+            ],
+        }));
 
     } else {
         config.mode = 'development';
