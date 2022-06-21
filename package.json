@@ -10,8 +10,8 @@
     "build:prod": "webpack --mode=production --node-env=production",
     "watch": "webpack --watch --mode=development",
     "serve": "webpack serve --mode=development",
-    "coverage": "jest --coverage",
-    "test": "jest"
+    "coverage": "TZ=UTC jest --coverage",
+    "test": "TZ=UTC jest"
   },
   "devDependencies": {
     "@types/jest": "^28.1.2",
