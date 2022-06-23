@@ -1,18 +1,37 @@
+import * as Guard from "../guard/basic"
+
 type CronSettingLiteralInfo = {
-    original:string,
-    targets:number[],
-    step?:number,
-    anytime:boolean,
+    original: string,
+    targets: number[],
+    step?: number,
+    anytime: boolean,
 };
 
 // cronは左から「分」「時」「日」「月」「曜日」
 export type CronTime = {
+    original: string,
     分: CronSettingLiteralInfo,
     時: CronSettingLiteralInfo,
     日: CronSettingLiteralInfo,
     月: CronSettingLiteralInfo,
     曜日: CronSettingLiteralInfo,
 };
+
+const isCronSettingLiteralInfo = Guard.isCustomType<CronSettingLiteralInfo>({
+    original: Guard.isString,
+    targets: Guard.isObject,
+    step: Guard.optional(Guard.isNumber),
+    anytime: Guard.isBoolean,
+});
+
+export const isCronTime = Guard.isCustomType<CronTime>({
+    original:Guard.isString,
+    分: isCronSettingLiteralInfo,
+    時: isCronSettingLiteralInfo,
+    日: isCronSettingLiteralInfo,
+    月: isCronSettingLiteralInfo,
+    曜日: isCronSettingLiteralInfo,
+});
 
 const CronMinNumber = {
     分: 0,
@@ -31,11 +50,11 @@ const CronMaxNumber = {
 } as const;
 
 const CronIndexMinMax = [
-    {min:CronMinNumber.分, max:CronMaxNumber.分},
-    {min:CronMinNumber.時, max:CronMaxNumber.時},
-    {min:CronMinNumber.日, max:CronMaxNumber.日},
-    {min:CronMinNumber.月, max:CronMaxNumber.月},
-    {min:CronMinNumber.曜日, max:CronMaxNumber.曜日},
+    { min: CronMinNumber.分, max: CronMaxNumber.分 },
+    { min: CronMinNumber.時, max: CronMaxNumber.時 },
+    { min: CronMinNumber.日, max: CronMaxNumber.日 },
+    { min: CronMinNumber.月, max: CronMaxNumber.月 },
+    { min: CronMinNumber.曜日, max: CronMaxNumber.曜日 },
 ];
 
 export function parse(cronFormatStr: string): CronTime {
@@ -53,7 +72,7 @@ export function parse(cronFormatStr: string): CronTime {
                 const [, startstr, endstr] = rangevalue;
                 const start = Number(startstr);
                 const end = Number(endstr);
-                const l:number[] = [];
+                const l: number[] = [];
                 if (start <= end) {
                     for (let i = start; i <= end; i++) {
                         l.push(i);
@@ -69,7 +88,7 @@ export function parse(cronFormatStr: string): CronTime {
                 return l.join(',');
             } else {
                 if (leftsplitstr == '*') {
-                    const l:number[] = [];
+                    const l: number[] = [];
                     for (let i = CronIndexMinMax[index].min; i <= CronIndexMinMax[index].max; i++) {
                         l.push(i);
                     }
@@ -79,7 +98,7 @@ export function parse(cronFormatStr: string): CronTime {
                 }
             }
         }).join(',').split(',').map((leftsplitstr) => {
-            switch(index) {
+            switch (index) {
                 case 4:
                     if (leftsplitstr == '7') {
                         leftsplitstr = '0';
@@ -102,8 +121,14 @@ export function parse(cronFormatStr: string): CronTime {
             return Number(a) - Number(b);
         }).map(value => Number(value));
 
-        return {original:schedule, targets:enableNumbers, step:(step === 0 ? null : step), anytime: anytime};
+        return { original: schedule, targets: enableNumbers, step: (step === 0 ? null : step), anytime: anytime };
     });
 
-    return {分, 時, 日, 月, 曜日};
+    return { original: cronFormatStr, 分, 時, 日, 月, 曜日 };
 }
+
+export const testOnlyExports = {
+    isCronSettingLiteralInfo,
+    vars: {
+    },
+};

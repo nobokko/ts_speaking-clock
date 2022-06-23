@@ -187,6 +187,32 @@ describe('status', () => {
     });
 });
 
+describe('info', () => {
+    it('info exists', () => {
+        expect(CronExecuter.status().schedule.length).toBe(0);
+        const task = () => {};
+        const id = CronExecuter.append('1,6 2,7 3,8 4,9 5', task);
+        expect(CronExecuter.status().schedule.length).toBe(1);
+        const info = CronExecuter.info(id);
+        expect(info.id).toBe(id);
+        expect(info.nextDate).toBe('2022-09-03T02:01:00.000Z');
+        expect(info.cronTime.分.original).toBe('1,6');
+        expect(info.cronTime.時.original).toBe('2,7');
+        expect(info.cronTime.日.original).toBe('3,8');
+        expect(info.cronTime.月.original).toBe('4,9');
+        expect(info.cronTime.曜日.original).toBe('5');
+    });
+
+    it('info not exist', () => {
+        expect(CronExecuter.status().schedule.length).toBe(0);
+        const task = () => {};
+        const id = CronExecuter.append('1,6 2,7 3,8 4,9 5', task);
+        expect(CronExecuter.status().schedule.length).toBe(1);
+        const info = CronExecuter.info(id + 100);
+        expect(info).toBe(null);
+    });
+});
+
 describe('nextTime 1', () => {
     it('1分後', () => {
         const targetDate = new Date(2022, 6 - 1, 19, 21, 11, 1, 1);

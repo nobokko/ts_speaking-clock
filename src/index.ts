@@ -17,6 +17,14 @@ CronExecuter.addEventListener("afterExecute", () => {
 
 CronExecuter.addEventListener("update", () => {
     console.debug('sorted.');
+    const status = CronExecuter.status();
+    console.info(status.schedule);
+    if (status.schedule.length) {
+        const scheduleInfo = CronExecuter.info(status.schedule[0]);
+        if (scheduleInfo) {
+            console.info(scheduleInfo.cronTime.original, scheduleInfo.nextDate);
+        }
+    }
 });
 
 CronExecuter.append('0 * * * *', () => {

@@ -1,4 +1,5 @@
 import * as Parser from "./settingParser";
+import * as Guard from "../guard/basic"
 
 const eventHandlers = {
     // xxx[Schedule]は省略する
@@ -52,6 +53,24 @@ type CronScheduleInfo = {
     nextDate: Date,
 };
 
+type CronRoughCloneScheduleInfo = {
+    id: number,
+    label?: string,
+    description?: string,
+    cronTime: Parser.CronTime,
+    lastCronExecute?: CronLastExecuteTime,
+    nextDate: string,
+}
+
+const isCronRoughCloneScheduleInfo = Guard.isCustomType<CronRoughCloneScheduleInfo>({
+    id: Guard.isNumber,
+    label: Guard.optional(Guard.isString),
+    description: Guard.optional(Guard.isString),
+    cronTime: Parser.isCronTime,
+    lastCronExecute: Guard.optional(Guard.isObject),
+    nextDate: Guard.isString,
+});
+
 const schedule: CronScheduleInfo[] = [];
 
 function start__time() {
@@ -69,9 +88,11 @@ function start__exec() {
             return;
         }
         const now = currentDate();
-        while (schedule[0].nextDate.getTime() <= now.getTime()) {
-            now.setMilliseconds(1);
-            const targetSchedule = schedule[0];
+        now.setMilliseconds(1);
+        const firstNonExecIndex = schedule.findIndex(targetSchedule => {
+            if (targetSchedule.nextDate.getTime() > now.getTime()) {
+                return true;
+            }
             const lastCronExecute = {
                 分: targetSchedule.nextDate.getMinutes(),
                 時: targetSchedule.nextDate.getHours(),
@@ -95,6 +116,8 @@ function start__exec() {
             targetSchedule.nextDate = nextTime(targetSchedule.cronTime, now, lastCronExecute);
             targetSchedule.lastCronExecute = lastCronExecute;
             // console.debug(`next : ${targetSchedule.nextDate}`)
+        });
+        if (firstNonExecIndex != 0) {
             scheduleSort();
         }
     });
@@ -119,6 +142,19 @@ export function status() {
         sequence: sequence,
         schedule: schedule.map(info => info.id),
     };
+}
+
+export function info(id: number) {
+    for (const scheduleInfo of schedule) {
+        if (scheduleInfo.id == id) {
+            const result = JSON.parse(JSON.stringify(scheduleInfo));
+            if (isCronRoughCloneScheduleInfo(result)) {
+                return result;
+            }
+        }
+    }
+
+    return null;
 }
 
 function scheduleSort() {
@@ -151,7 +187,7 @@ export function append(setting: string | Parser.CronTime, task: CronTask, label?
 }
 
 export function remove(...ids: number[]) {
-    const targets:number[] = [];
+    const targets: number[] = [];
     schedule.forEach((info, index) => {
         if (ids.indexOf(info.id) >= 0) {
             targets.push(index);
@@ -171,7 +207,7 @@ function nextTime(crontime: Parser.CronTime, now: Date, lastCronExecute?: CronLa
     // 未来方向に秒をキレイにする（結果基本的に実行時間より分が１分進む）
     nextDate.setSeconds(60);
 
-    const calc = (単位: keyof (Parser.CronTime), min: number, max: () => number) => {
+    const calc = (単位: keyof (CronLastExecuteTime), min: number, max: () => number) => {
         const dateProperties = (() => {
             switch (単位) {
                 case '分':

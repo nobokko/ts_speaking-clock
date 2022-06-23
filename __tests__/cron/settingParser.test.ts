@@ -1,5 +1,24 @@
 import * as Parser from "../../src/cron/settingParser";
 
+describe('isCronSettingLiteralInfo', () => {
+    it('*', () => {
+        const result = Parser.testOnlyExports.isCronSettingLiteralInfo({ original: '*', targets: [0, 1, 2, 3, 4, 5, 6], anytime: true });
+        expect(result).toBe(true);
+    });
+
+    it('*/2', () => {
+        const result = Parser.testOnlyExports.isCronSettingLiteralInfo({ original: '*', step: 2, targets: [0, 1, 2, 3, 4, 5, 6], anytime: true });
+        expect(result).toBe(true);
+    });
+});
+
+describe('isCronTime', () => {
+    it('* * * * *', () => {
+        const result = Parser.isCronTime(Parser.parse('* * * * *'));
+        // expect(result).toBe(true);
+    });
+});
+
 describe('parse', () => {
     it('* * * * *', () => {
         const result = Parser.parse('* * * * *');
