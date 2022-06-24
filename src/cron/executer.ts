@@ -43,6 +43,14 @@ type CronLastExecuteTime = {
     曜日: number,
 };
 
+const isCronLastExecuteTime = Guard.customizeType<CronLastExecuteTime>({
+    分: Guard.isNumber,
+    時: Guard.isNumber,
+    日: Guard.isNumber,
+    月: Guard.isNumber,
+    曜日: Guard.isNumber,
+});
+
 type CronScheduleInfo = {
     id: number,
     label?: string,
@@ -62,12 +70,12 @@ type CronRoughCloneScheduleInfo = {
     nextDate: string,
 }
 
-const isCronRoughCloneScheduleInfo = Guard.isCustomType<CronRoughCloneScheduleInfo>({
+const isCronRoughCloneScheduleInfo = Guard.customizeType<CronRoughCloneScheduleInfo>({
     id: Guard.isNumber,
     label: Guard.optional(Guard.isString),
     description: Guard.optional(Guard.isString),
     cronTime: Parser.isCronTime,
-    lastCronExecute: Guard.optional(Guard.isObject),
+    lastCronExecute: Guard.optional(isCronLastExecuteTime),
     nextDate: Guard.isString,
 });
 
@@ -144,7 +152,7 @@ export function status() {
     };
 }
 
-export function info(id: number) {
+export function info(id: number): Readonly<CronRoughCloneScheduleInfo> {
     for (const scheduleInfo of schedule) {
         if (scheduleInfo.id == id) {
             const result = JSON.parse(JSON.stringify(scheduleInfo));

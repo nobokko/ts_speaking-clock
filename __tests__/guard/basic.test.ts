@@ -63,11 +63,40 @@ describe('isNull', () => {
     });
 });
 
+describe('array', () => {
+    it('array []', () => {
+        const func = Guard.arraylize(Guard.isNumber);
+        expect(func([])).toBe(true);
+    });
+
+    it('array [1]', () => {
+        const func = Guard.arraylize(Guard.isNumber);
+        expect(func([1])).toBe(true);
+    });
+
+    it('array [1, Symbol(2)]', () => {
+        const target = [1, Symbol(2)];
+        const func = Guard.arraylize(Guard.union(Guard.isNumber, Guard.isSymbol));
+        expect(func(target)).toBe(true);
+    });
+
+    it('array [""] - 指定外の型', () => {
+        const func = Guard.arraylize(Guard.isNumber);
+        expect(func([''])).toBe(false);
+    });
+
+    it('array 1 - 配列ではない', () => {
+        const func = Guard.arraylize(Guard.isNumber);
+        expect(func(1)).toBe(false);
+    });
+});
+
 describe('union', () => {
     it('string|number', () => {
         const func = Guard.union(Guard.isString, Guard.isNumber);
         expect(func('0')).toBe(true);
         expect(func(0)).toBe(true);
+        expect(func(Symbol(0))).toBe(false);
     });
 });
 
@@ -76,28 +105,41 @@ describe('optional', () => {
         const func = Guard.optional(Guard.isString);
         expect(func('0')).toBe(true);
         expect(func(undefined)).toBe(true);
+        expect(func(null)).toBe(true);
+    });
+
+    it('string (比較用)', () => {
+        const func = Guard.isString;
+        expect(func('0')).toBe(true);
+        expect(func(undefined)).toBe(false);
+        expect(func(null)).toBe(false);
     });
 });
 
-describe('isMyType', () => {
+describe('customizeType', () => {
     it('{}', () => {
-        const result = Guard.isCustomType<{}>({})({});
+        const result = Guard.customizeType<{}>({})({});
         expect(result).toBe(true);
     });
 
     it('{a: number}', () => {
-        const result = Guard.isCustomType<{ a: number }>({ a: Guard.isNumber })({ a: 0 });
+        const result = Guard.customizeType<{ a: number }>({ a: Guard.isNumber })({ a: 0 });
         expect(result).toBe(true);
     });
 
     it('{a?: number}', () => {
-        const result = Guard.isCustomType<{ a?: number }>({ a: Guard.optional(Guard.isNumber) })({});
+        const result = Guard.customizeType<{ a?: number }>({ a: Guard.optional(Guard.isNumber) })({});
         expect(result).toBe(true);
     });
 
+    it('{a?: number} (比較用)', () => {
+        const result = Guard.customizeType<{ a?: number }>({ a: Guard.isNumber })({});
+        expect(result).toBe(false);
+    });
+
     it('{a: {b:number, c:string}}', () => {
-        const result = Guard.isCustomType<{ a: { b: number, c: string } }>({
-            a: Guard.isCustomType<{ b: number, c: string }>({
+        const result = Guard.customizeType<{ a: { b: number, c: string } }>({
+            a: Guard.customizeType<{ b: number, c: string }>({
                 b: Guard.isNumber,
                 c: Guard.isString,
             }),
@@ -106,8 +148,8 @@ describe('isMyType', () => {
     });
 
     it('not match {a: {b:number, c:string}}', () => {
-        const result = Guard.isCustomType<{ a: { b: number, c: string } }>({
-            a: Guard.isCustomType<{ b: number, c: string }>({
+        const result = Guard.customizeType<{ a: { b: number, c: string } }>({
+            a: Guard.customizeType<{ b: number, c: string }>({
                 b: Guard.isNumber,
                 c: Guard.isString,
             }),
@@ -116,12 +158,12 @@ describe('isMyType', () => {
     });
 
     it('not match {a: {b:number, c:string}}', () => {
-        const result = Guard.isCustomType<{ a: { b: number, c: string } }>({
-            a: Guard.isCustomType<{ b: number, c: string }>({
+        const result = Guard.customizeType<{ a: { b: number, c: string } }>({
+            a: Guard.customizeType<{ b: number, c: string }>({
                 b: Guard.isNumber,
                 c: Guard.isString,
             }),
-        })({a: {}});
+        })({ a: {} });
         expect(result).toBe(false);
     });
 });

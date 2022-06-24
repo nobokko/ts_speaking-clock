@@ -7,6 +7,13 @@ type CronSettingLiteralInfo = {
     anytime: boolean,
 };
 
+const isCronSettingLiteralInfo = Guard.customizeType<CronSettingLiteralInfo>({
+    original: Guard.isString,
+    targets: Guard.arraylize(Guard.isNumber),
+    step: Guard.optional(Guard.isNumber),
+    anytime: Guard.isBoolean,
+});
+
 // cronは左から「分」「時」「日」「月」「曜日」
 export type CronTime = {
     original: string,
@@ -17,14 +24,7 @@ export type CronTime = {
     曜日: CronSettingLiteralInfo,
 };
 
-const isCronSettingLiteralInfo = Guard.isCustomType<CronSettingLiteralInfo>({
-    original: Guard.isString,
-    targets: Guard.isObject,
-    step: Guard.optional(Guard.isNumber),
-    anytime: Guard.isBoolean,
-});
-
-export const isCronTime = Guard.isCustomType<CronTime>({
+export const isCronTime = Guard.customizeType<CronTime>({
     original:Guard.isString,
     分: isCronSettingLiteralInfo,
     時: isCronSettingLiteralInfo,

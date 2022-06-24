@@ -34,17 +34,38 @@ export function isNull(value: any): value is null {
     return value === null;
 }
 
-export function union(...functions: Function[]): (value: any) => boolean {
-    return ((value: any) => functions.some(func => func(value)));
+type TypeConclude<T> = (value: any) => value is T;
+
+export function arraylize<T>(func: TypeConclude<T>): (TypeConclude<Array<T>>) {
+    return (value: any): value is Array<T> => {
+        if (!(value instanceof Array)) {
+            return false;
+        }
+
+        return value.every(func);
+    };
 }
 
-export function optional(func: Function): (value: any) => boolean {
+export function union<S, T = S, U = S>(funcA: TypeConclude<S>, funcB?: TypeConclude<T>, funcC?: TypeConclude<U>): TypeConclude<S | T | U> {
+    const funcs: ((value: any) => boolean)[] = [funcA];
+    if (funcB) {
+        funcs.push(funcB);
+    }
+    if (funcC) {
+        funcs.push(funcC);
+    }
+    return (value: any): value is S | T | U => {
+        return funcs.some(func => func(value));
+    };
+}
+
+export function optional<T>(func: TypeConclude<T>): TypeConclude<T> {
     return union(isUndefined, isNull, func);
 }
 
-type Blueprint<T> = { [key in (keyof T)]: Blueprint<any> | ((value: any) => boolean) };
+type Blueprint<T> = { [key in (keyof T)]: Blueprint<T[key]> | TypeConclude<T[key]> };
 
-export function isCustomType<T>(blueprint: Blueprint<T>): (((value: any) => value is T)) {
+export function customizeType<T>(blueprint: Blueprint<T>): TypeConclude<T> {
     const f = (value: any, blueprint: Blueprint<any> | ((value: any) => boolean)): boolean => {
         if (isFunction(blueprint)) {
             if (!blueprint(value)) {
