@@ -19,12 +19,24 @@ CronExecuter.addEventListener("update", () => {
     console.debug('sorted.');
     const status = CronExecuter.status();
     console.info(status.schedule);
+    const tastListElement = document.querySelector('#task_list');
+    document.querySelectorAll('#task_list>*').forEach(ele => {
+        ele.setAttribute('removed', "1");
+    });
     if (status.schedule.length) {
-        const scheduleInfo = CronExecuter.info(status.schedule[0]);
-        if (scheduleInfo) {
-            console.info(scheduleInfo.cronTime.original, scheduleInfo.nextDate);
-        }
+        status.schedule.forEach(id => {
+            const scheduleInfo = CronExecuter.info(id);
+            if (scheduleInfo) {
+                const newElement = document.createElement('div');
+                newElement.innerText = `${id} - ${scheduleInfo.cronTime.original} - ${scheduleInfo.nextDate}`;
+                console.info(scheduleInfo.cronTime.original, scheduleInfo.nextDate);
+                tastListElement.appendChild(newElement);
+            }
+        });
     }
+    document.querySelectorAll('#task_list>[removed]').forEach(ele => {
+        ele.remove();
+    });
 });
 
 CronExecuter.append('0 * * * *', () => {
