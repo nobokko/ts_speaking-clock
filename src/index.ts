@@ -15,6 +15,13 @@ CronExecuter.addEventListener("afterExecute", () => {
     console.debug('end task.');
 });
 
+const formatLastCronExecute = (lastCronExecute:{[key:string]:(string|number)}) => {
+    if (!lastCronExecute) {
+        return 'undefined';
+    }
+    return `${lastCronExecute.月}/${lastCronExecute.日} ${lastCronExecute.時}:${lastCronExecute.分}(${lastCronExecute.曜日})`;
+};
+
 CronExecuter.addEventListener("update", () => {
     console.debug('sorted.');
     const status = CronExecuter.status();
@@ -28,8 +35,9 @@ CronExecuter.addEventListener("update", () => {
             const scheduleInfo = CronExecuter.info(id);
             if (scheduleInfo) {
                 const newElement = document.createElement('div');
-                newElement.innerText = `${id} - ${scheduleInfo.cronTime.original} - ${scheduleInfo.nextDate}`;
-                console.info(scheduleInfo.cronTime.original, scheduleInfo.nextDate);
+                newElement.innerText = `${id} - ${scheduleInfo.cronTime.original} - ${scheduleInfo.nextDate} - ${formatLastCronExecute(scheduleInfo.lastCronExecute)}`
+                newElement.setAttribute('data-schedule-id', `${id}`);
+                console.info(scheduleInfo.cronTime.original, scheduleInfo.nextDate, formatLastCronExecute(scheduleInfo.lastCronExecute));
                 tastListElement.appendChild(newElement);
             }
         });
@@ -77,5 +85,9 @@ CronExecuter.append('*/3 * * * *', () => {
     const utterThis = new SpeechSynthesisUtterance(`三分経過。`);
     synth.speak(utterThis);
 }, '三分毎');
+
+CronExecuter.append('*/7 * * * *', () => {
+    console.log('7分毎');
+}, '7分毎');
 
 CronExecuter.start();

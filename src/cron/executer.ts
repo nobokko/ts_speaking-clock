@@ -165,17 +165,24 @@ export function info(id: number): Readonly<CronRoughCloneScheduleInfo> {
     return null;
 }
 
+const promises = {
+    scheduleSorting : Promise.resolve(),
+};
 function scheduleSort() {
-    const before = schedule.map(s => `${s.id}_${s.nextDate}`).join(',');
-    schedule.sort((a, b) => {
-        return a.nextDate.getTime() - b.nextDate.getTime();
-    });
-    const after = schedule.map(s => `${s.id}_${s.nextDate}`).join(',');
-    if (before != after) {
-        new Promise(() => {
-            eventHandlers.update.forEach(listener => listener());
+    promises.scheduleSorting = promises.scheduleSorting.then(() => {
+        const before = schedule.map(s => `${s.id}_${s.nextDate}`).join(',');
+        schedule.sort((a, b) => {
+            return a.nextDate.getTime() - b.nextDate.getTime();
         });
-    }
+        const after = schedule.map(s => `${s.id}_${s.nextDate}`).join(',');
+        if (before != after) {
+            return new Promise(resolve => {
+                eventHandlers.update.forEach(listener => listener());
+                resolve();
+            });
+        }
+        return Promise.resolve();
+    });
 }
 
 let sequence = 1;
@@ -211,6 +218,7 @@ export function remove(...ids: number[]) {
 function nextTime(crontime: Parser.CronTime, now: Date, lastCronExecute?: CronLastExecuteTime) {
     const nextDate = new Date(now);
     // 未来方向にミリ秒をキレイにする
+    nextDate.setSeconds(1);
     nextDate.setMilliseconds(1000);
     // 未来方向に秒をキレイにする（結果基本的に実行時間より分が１分進む）
     nextDate.setSeconds(60);
@@ -256,11 +264,12 @@ function nextTime(crontime: Parser.CronTime, now: Date, lastCronExecute?: CronLa
                 }
             }
         } else {
+            const carried = lastCronExecute[単位] > dateProperties.getter();
             // ※ この時点ではmax超かの場合がある
             if (lastCronExecute[単位] == dateProperties.getter()) {
                 // 一旦fix
             } else {
-                const nextvalue = lastCronExecute[単位] + (crontime[単位].step ?? 1);
+                const nextvalue = lastCronExecute[単位] + (crontime[単位].step ?? 1) - (carried ? (max() - min + 1) : 0);
                 if (crontime[単位].targets.indexOf(nextvalue) != -1) {
                     // ※ targetsには通常max超かの値は含まれない
                     dateProperties.setter(nextvalue);
@@ -286,13 +295,14 @@ function nextTime(crontime: Parser.CronTime, now: Date, lastCronExecute?: CronLa
     };
     const d = [
         calc('分', 0, () => 59),
-        calc('時', 0, () => 23),
     ];
+    d.push(calc('時', 0, () => 23));
     if (d[1].valuechange && d[0].nextDate.getHours() != d[1].nextDate.getHours()) {
         nextDate.setMinutes(crontime.分.targets[0]);
     }
     d.push(calc('日', 1, () => {
-        const d = new Date(nextDate);
+        // const d = new Date(nextDate);
+        const d = new Date(now);
         // 翌月の1～4日くらい
         d.setDate(32);
         // 当月末
@@ -325,5 +335,6 @@ export const testOnlyExports = {
     vars: {
         eventHandlers,
         schedule,
+        promises,
     },
 };

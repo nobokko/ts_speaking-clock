@@ -4,7 +4,7 @@ import * as CronSettingParser from "../../src/cron/settingParser";
 beforeAll(() => {
     jest.spyOn(globalThis.Date, "now").mockImplementation(() => (new Date(2022, 6 - 1, 19, 22, 48, 1, 1)).getTime());
 
-    jest.spyOn(globalThis, "setTimeout").mockImplementation((callback: (args: void) => void, ms?: number):any => {
+    jest.spyOn(globalThis, "setTimeout").mockImplementation((callback: (args: void) => void, ms?: number): any => {
         console.debug('call setTimeout. skiped.');
 
         return 0;
@@ -21,13 +21,13 @@ beforeEach(() => {
 
 describe('append', () => {
     it('* * * * * string', () => {
-        const result = CronExecuter.append('* * * * *', () => {});
+        const result = CronExecuter.append('* * * * *', () => { });
         expect(CronExecuter.testOnlyExports.vars.schedule.length).toBe(1);
         expect(CronExecuter.testOnlyExports.vars.schedule[0].nextDate.getHours()).toBe(22);
     });
 
     it('* * * * * CronTime', () => {
-        const result = CronExecuter.append(CronSettingParser.parse('* * * * *'), () => {});
+        const result = CronExecuter.append(CronSettingParser.parse('* * * * *'), () => { });
         expect(CronExecuter.testOnlyExports.vars.schedule.length).toBe(1);
         expect(CronExecuter.testOnlyExports.vars.schedule[0].nextDate.getHours()).toBe(22);
     });
@@ -35,9 +35,9 @@ describe('append', () => {
 
 describe('remove', () => {
     it('remove', () => {
-        const id1 = CronExecuter.append('* * * * *', () => {});
-        const id2 = CronExecuter.append('* * * * *', () => {});
-        const id3 = CronExecuter.append('* * * * *', () => {});
+        const id1 = CronExecuter.append('* * * * *', () => { });
+        const id2 = CronExecuter.append('* * * * *', () => { });
+        const id3 = CronExecuter.append('* * * * *', () => { });
         expect(CronExecuter.testOnlyExports.vars.schedule.length).toBe(3);
         CronExecuter.remove(id2);
         expect(CronExecuter.testOnlyExports.vars.schedule.length).toBe(2);
@@ -54,7 +54,7 @@ describe('addEventListener', () => {
     it('addEventListener start', () => {
         expect(CronExecuter.testOnlyExports.vars.eventHandlers.start.length).toBe(0);
         expect(CronExecuter.testOnlyExports.vars.eventHandlers.update.length).toBe(0);
-        CronExecuter.addEventListener('start', () => {});
+        CronExecuter.addEventListener('start', () => { });
         expect(CronExecuter.testOnlyExports.vars.eventHandlers.start.length).toBe(1);
         expect(CronExecuter.testOnlyExports.vars.eventHandlers.update.length).toBe(0);
     });
@@ -62,29 +62,29 @@ describe('addEventListener', () => {
     it('addEventListener update', () => {
         expect(CronExecuter.testOnlyExports.vars.eventHandlers.start.length).toBe(0);
         expect(CronExecuter.testOnlyExports.vars.eventHandlers.update.length).toBe(0);
-        CronExecuter.addEventListener('update', () => {});
+        CronExecuter.addEventListener('update', () => { });
         expect(CronExecuter.testOnlyExports.vars.eventHandlers.start.length).toBe(0);
         expect(CronExecuter.testOnlyExports.vars.eventHandlers.update.length).toBe(1);
     });
 
     it('addEventListener beforeExecute', () => {
         expect(CronExecuter.testOnlyExports.vars.eventHandlers.beforeExecute.length).toBe(0);
-        CronExecuter.addEventListener('beforeExecute', () => {});
+        CronExecuter.addEventListener('beforeExecute', () => { });
         expect(CronExecuter.testOnlyExports.vars.eventHandlers.beforeExecute.length).toBe(1);
     });
 
     it('addEventListener afterExecute', () => {
         expect(CronExecuter.testOnlyExports.vars.eventHandlers.afterExecute.length).toBe(0);
-        CronExecuter.addEventListener('afterExecute', () => {});
+        CronExecuter.addEventListener('afterExecute', () => { });
         expect(CronExecuter.testOnlyExports.vars.eventHandlers.afterExecute.length).toBe(1);
     });
 });
 
 describe('removeEventListener', () => {
     it('removeEventListener start', () => {
-        const startListener = () => {};
+        const startListener = () => { };
         CronExecuter.addEventListener('start', startListener);
-        CronExecuter.addEventListener('update', () => {});
+        CronExecuter.addEventListener('update', () => { });
         expect(CronExecuter.testOnlyExports.vars.eventHandlers.start.length).toBe(1);
         expect(CronExecuter.testOnlyExports.vars.eventHandlers.update.length).toBe(1);
         CronExecuter.removeEventListener('start', startListener);
@@ -93,8 +93,8 @@ describe('removeEventListener', () => {
     });
 
     it('removeEventListener update', () => {
-        const updateListener = () => {};
-        CronExecuter.addEventListener('start', () => {});
+        const updateListener = () => { };
+        CronExecuter.addEventListener('start', () => { });
         CronExecuter.addEventListener('update', updateListener);
         expect(CronExecuter.testOnlyExports.vars.eventHandlers.start.length).toBe(1);
         expect(CronExecuter.testOnlyExports.vars.eventHandlers.update.length).toBe(1);
@@ -104,16 +104,16 @@ describe('removeEventListener', () => {
     });
 
     it('removeEventListener 同じ処理だけど別定義', () => {
-        CronExecuter.addEventListener('start', () => {});
+        CronExecuter.addEventListener('start', () => { });
         expect(CronExecuter.testOnlyExports.vars.eventHandlers.start.length).toBe(1);
-        CronExecuter.removeEventListener('start', () => {});
+        CronExecuter.removeEventListener('start', () => { });
         expect(CronExecuter.testOnlyExports.vars.eventHandlers.start.length).toBe(1);
     });
 });
 
 describe('isCronTaskA', () => {
     it('isCronTaskA', () => {
-        const task = () => {};
+        const task = () => { };
         const result = CronExecuter.testOnlyExports.isCronTaskA(task);
         expect(result).toBe(true);
     });
@@ -121,7 +121,7 @@ describe('isCronTaskA', () => {
 
 describe('isCronTaskB', () => {
     it('isCronTaskB', () => {
-        const task = (param1:CronSettingParser.CronTime) => {};
+        const task = (param1: CronSettingParser.CronTime) => { };
         const result = CronExecuter.testOnlyExports.isCronTaskB(task);
         expect(result).toBe(true);
     });
@@ -135,11 +135,12 @@ describe('currentDate', () => {
 });
 
 describe('scheduleSort', () => {
-    it('scheduleSort', () => {
-        CronExecuter.append('59 1 1 1 *', () => {}, 'p1', 'last');
-        CronExecuter.append('0 1 1 1 *', () => {}, 'p2', 'first');
-        CronExecuter.append('30 1 1 1 *', () => {}, 'p3', 'middle');
+    it('scheduleSort', async () => {
+        CronExecuter.append('59 1 1 1 *', () => { }, 'p1', 'last');
+        CronExecuter.append('0 1 1 1 *', () => { }, 'p2', 'first');
+        CronExecuter.append('30 1 1 1 *', () => { }, 'p3', 'middle');
         CronExecuter.testOnlyExports.scheduleSort();
+        await CronExecuter.testOnlyExports.vars.promises.scheduleSorting;
         expect(CronExecuter.testOnlyExports.vars.schedule.length).toBe(3);
         expect(CronExecuter.testOnlyExports.vars.schedule[0].label).toBe('p2');
         expect(CronExecuter.testOnlyExports.vars.schedule[1].label).toBe('p3');
@@ -153,8 +154,8 @@ describe('start__exec', () => {
     });
 
     it('start__exec', () => {
-        CronExecuter.append('* * * * *', () => {});
-        CronExecuter.append('* * * * *', (schedule) => {});
+        CronExecuter.append('* * * * *', () => { });
+        CronExecuter.append('* * * * *', (schedule) => { });
         expect(CronExecuter.testOnlyExports.vars.schedule[0].nextDate.getMinutes()).toBe(49);
         expect(CronExecuter.testOnlyExports.vars.schedule[1].nextDate.getMinutes()).toBe(49);
         CronExecuter.testOnlyExports.start__exec();
@@ -165,13 +166,14 @@ describe('start__exec', () => {
 });
 
 describe('start', () => {
-    it('start', () => {
+    it('start', async () => {
         expect(CronExecuter.status().started).toBe(false);
         CronExecuter.start();
         expect(CronExecuter.status().started).toBe(true);
-        CronExecuter.append('* * * 8 *', () => {});
-        CronExecuter.append('* * * 7 *', () => {}, 'this');
-        CronExecuter.append('* * * 9 *', () => {});
+        CronExecuter.append('* * * 8 *', () => { });
+        CronExecuter.append('* * * 7 *', () => { }, 'this');
+        CronExecuter.append('* * * 9 *', () => { });
+        await CronExecuter.testOnlyExports.vars.promises.scheduleSorting;
         expect(CronExecuter.testOnlyExports.vars.schedule[0].label).toBe('this');
     });
 });
@@ -179,7 +181,7 @@ describe('start', () => {
 describe('status', () => {
     it('status', () => {
         expect(CronExecuter.status().schedule.length).toBe(0);
-        const task = () => {};
+        const task = () => { };
         const id = CronExecuter.append('* * * * *', task);
         expect(CronExecuter.status().schedule.length).toBe(1);
         CronExecuter.remove(id);
@@ -190,7 +192,7 @@ describe('status', () => {
 describe('info', () => {
     it('info exists', () => {
         expect(CronExecuter.status().schedule.length).toBe(0);
-        const task = () => {};
+        const task = () => { };
         const id = CronExecuter.append('1,6 2,7 3,8 4,9 5', task);
         expect(CronExecuter.status().schedule.length).toBe(1);
         const info = CronExecuter.info(id);
@@ -205,7 +207,7 @@ describe('info', () => {
 
     it('info not exist', () => {
         expect(CronExecuter.status().schedule.length).toBe(0);
-        const task = () => {};
+        const task = () => { };
         const id = CronExecuter.append('1,6 2,7 3,8 4,9 5', task);
         expect(CronExecuter.status().schedule.length).toBe(1);
         const info = CronExecuter.info(id + 100);
@@ -323,11 +325,11 @@ describe('nextTime 2', () => {
         const lastExecuteDate = new Date(2022, 6 - 1, 19, 21, 11, 0, 0);
         const targetDate = new Date(2022, 6 - 1, 19, 21, 11, 1, 1);
         const result = CronExecuter.testOnlyExports.nextTime(CronSettingParser.parse('* * * * *'), targetDate, {
-            分:lastExecuteDate.getMinutes(),
-            時:lastExecuteDate.getHours(),
-            日:lastExecuteDate.getDate(),
-            月:lastExecuteDate.getMonth(),
-            曜日:lastExecuteDate.getDay(),
+            分: lastExecuteDate.getMinutes(),
+            時: lastExecuteDate.getHours(),
+            日: lastExecuteDate.getDate(),
+            月: lastExecuteDate.getMonth(),
+            曜日: lastExecuteDate.getDay(),
         });
         expect(result.toUTCString()).toBe('Sun, 19 Jun 2022 21:12:00 GMT');
     });
@@ -336,11 +338,11 @@ describe('nextTime 2', () => {
         const lastExecuteDate = new Date(2022, 6 - 1, 19, 21, 11, 0, 0);
         const targetDate = new Date(2022, 6 - 1, 19, 21, 11, 1, 1);
         const result = CronExecuter.testOnlyExports.nextTime(CronSettingParser.parse('*/30 * * * *'), targetDate, {
-            分:lastExecuteDate.getMinutes(),
-            時:lastExecuteDate.getHours(),
-            日:lastExecuteDate.getDate(),
-            月:lastExecuteDate.getMonth(),
-            曜日:lastExecuteDate.getDay(),
+            分: lastExecuteDate.getMinutes(),
+            時: lastExecuteDate.getHours(),
+            日: lastExecuteDate.getDate(),
+            月: lastExecuteDate.getMonth(),
+            曜日: lastExecuteDate.getDay(),
         });
         expect(result.toUTCString()).toBe('Sun, 19 Jun 2022 21:41:00 GMT');
     });
@@ -349,11 +351,11 @@ describe('nextTime 2', () => {
         const lastExecuteDate = new Date(2022, 6 - 1, 19, 21, 11, 0, 0);
         const targetDate = new Date(2022, 6 - 1, 19, 21, 11, 1, 1);
         const result = CronExecuter.testOnlyExports.nextTime(CronSettingParser.parse('0-29/30 * * * *'), targetDate, {
-            分:lastExecuteDate.getMinutes(),
-            時:lastExecuteDate.getHours(),
-            日:lastExecuteDate.getDate(),
-            月:lastExecuteDate.getMonth(),
-            曜日:lastExecuteDate.getDay(),
+            分: lastExecuteDate.getMinutes(),
+            時: lastExecuteDate.getHours(),
+            日: lastExecuteDate.getDate(),
+            月: lastExecuteDate.getMonth(),
+            曜日: lastExecuteDate.getDay(),
         });
         expect(result.toUTCString()).toBe('Sun, 19 Jun 2022 22:00:00 GMT');
     });
@@ -362,11 +364,11 @@ describe('nextTime 2', () => {
         const lastExecuteDate = new Date(2022, 6 - 1, 19, 21, 41, 0, 0);
         const targetDate = new Date(2022, 6 - 1, 19, 21, 41, 1, 1);
         const result = CronExecuter.testOnlyExports.nextTime(CronSettingParser.parse('*/30 * * * *'), targetDate, {
-            分:lastExecuteDate.getMinutes(),
-            時:lastExecuteDate.getHours(),
-            日:lastExecuteDate.getDate(),
-            月:lastExecuteDate.getMonth(),
-            曜日:lastExecuteDate.getDay(),
+            分: lastExecuteDate.getMinutes(),
+            時: lastExecuteDate.getHours(),
+            日: lastExecuteDate.getDate(),
+            月: lastExecuteDate.getMonth(),
+            曜日: lastExecuteDate.getDay(),
         });
         expect(result.toUTCString()).toBe('Sun, 19 Jun 2022 22:11:00 GMT');
     });
@@ -375,12 +377,57 @@ describe('nextTime 2', () => {
         const lastExecuteDate = new Date(2022, 6 - 1, 19, 21, 11, 0, 0);
         const targetDate = new Date(2022, 6 - 1, 19, 21, 11, 1, 1);
         const result = CronExecuter.testOnlyExports.nextTime(CronSettingParser.parse('41-13/3 * * * *'), targetDate, {
-            分:lastExecuteDate.getMinutes(),
-            時:lastExecuteDate.getHours(),
-            日:lastExecuteDate.getDate(),
-            月:lastExecuteDate.getMonth(),
-            曜日:lastExecuteDate.getDay(),
+            分: lastExecuteDate.getMinutes(),
+            時: lastExecuteDate.getHours(),
+            日: lastExecuteDate.getDate(),
+            月: lastExecuteDate.getMonth(),
+            曜日: lastExecuteDate.getDay(),
         });
         expect(result.toUTCString()).toBe('Sun, 19 Jun 2022 21:41:00 GMT');
+    });
+});
+
+describe('bug?', () => {
+    it('*/5 * * * * - 2022-06-26T14:04:00.000Z - 6/25 22:59(6)', () => {
+        // 原因：現在時刻が繰り上がるタイミングで二重に繰り上がっていた
+        {
+            const targetDate = new Date(2022, 6 - 1, 25, 22, 59, 1, 1);
+            const result = CronExecuter.testOnlyExports.nextTime(CronSettingParser.parse('*/5 * * * *'), targetDate, { 分: 59, 時: 22, 日: 25, 月: 6, 曜日: 6 });
+            expect(result.toUTCString()).toBe('Sat, 25 Jun 2022 23:04:00 GMT');
+        }
+        {
+            const targetDate = new Date(2022, 6 - 1, 25, 22, 59, 1, 1);
+            const result = CronExecuter.testOnlyExports.nextTime(CronSettingParser.parse('*/65 * * * *'), targetDate, { 分: 59, 時: 22, 日: 25, 月: 6, 曜日: 6 });
+            expect(result.toUTCString()).toBe('Sun, 26 Jun 2022 00:04:00 GMT');
+        }
+        {
+            const targetDate = new Date(2022, 6 - 1, 25, 23, 59, 1, 1);
+            const result = CronExecuter.testOnlyExports.nextTime(CronSettingParser.parse('59 */5 * * *'), targetDate, { 分: 59, 時: 23, 日: 25, 月: 6, 曜日: 6 });
+            expect(result.toUTCString()).toBe('Sun, 26 Jun 2022 04:59:00 GMT');
+        }
+        {
+            const targetDate = new Date(2022, 6 - 1, 30, 23, 59, 1, 1);
+            const crontime = CronSettingParser.parse('59 23 */5 * *');
+            const result = CronExecuter.testOnlyExports.nextTime(crontime, targetDate, {
+                分: targetDate.getMinutes(),
+                時: targetDate.getHours(),
+                日: targetDate.getDate(),
+                月: targetDate.getMonth() + 1,
+                曜日: targetDate.getDay(),
+            });
+            expect(result.toUTCString()).toBe('Tue, 05 Jul 2022 23:59:00 GMT');
+        }
+        {
+            const targetDate = new Date(2022, 12 - 1, 31, 23, 59, 1, 1);
+            const crontime = CronSettingParser.parse('59 23 31 */5 *');
+            const result = CronExecuter.testOnlyExports.nextTime(crontime, targetDate, {
+                分: targetDate.getMinutes(),
+                時: targetDate.getHours(),
+                日: targetDate.getDate(),
+                月: targetDate.getMonth() + 1,
+                曜日: targetDate.getDay(),
+            });
+            expect(result.toUTCString()).toBe('Wed, 31 May 2023 23:59:00 GMT');
+        }
     });
 });
