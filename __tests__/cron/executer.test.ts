@@ -389,7 +389,7 @@ describe('nextTime 2', () => {
 
 describe('bug?', () => {
     it('*/5 * * * * - 2022-06-26T14:04:00.000Z - 6/25 22:59(6)', () => {
-        // 原因：現在時刻が繰り上がるタイミングで二重に繰り上がっていた
+        // 原因：現在時刻が繰り上がるタイミング(59分実行時)で二重に繰り上がっていた
         {
             const targetDate = new Date(2022, 6 - 1, 25, 22, 59, 1, 1);
             const result = CronExecuter.testOnlyExports.nextTime(CronSettingParser.parse('*/5 * * * *'), targetDate, { 分: 59, 時: 22, 日: 25, 月: 6, 曜日: 6 });
