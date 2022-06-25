@@ -43,7 +43,7 @@ type CronLastExecuteTime = {
     曜日: number,
 };
 
-const isCronLastExecuteTime = Guard.customizeType<CronLastExecuteTime>({
+const isCronLastExecuteTime = Guard.customizeType({
     分: Guard.isNumber,
     時: Guard.isNumber,
     日: Guard.isNumber,
@@ -70,7 +70,7 @@ type CronRoughCloneScheduleInfo = {
     nextDate: string,
 }
 
-const isCronRoughCloneScheduleInfo = Guard.customizeType<CronRoughCloneScheduleInfo>({
+const isCronRoughCloneScheduleInfo = Guard.customizeType({
     id: Guard.isNumber,
     label: Guard.optional(Guard.isString),
     description: Guard.optional(Guard.isString),

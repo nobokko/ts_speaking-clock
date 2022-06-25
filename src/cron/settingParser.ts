@@ -7,7 +7,7 @@ type CronSettingLiteralInfo = {
     anytime: boolean,
 };
 
-const isCronSettingLiteralInfo = Guard.customizeType<CronSettingLiteralInfo>({
+const isCronSettingLiteralInfo = Guard.customizeType({
     original: Guard.isString,
     targets: Guard.arraylize(Guard.isNumber),
     step: Guard.optional(Guard.isNumber),
@@ -24,7 +24,7 @@ export type CronTime = {
     曜日: CronSettingLiteralInfo,
 };
 
-export const isCronTime = Guard.customizeType<CronTime>({
+export const isCronTime = Guard.customizeType({
     original:Guard.isString,
     分: isCronSettingLiteralInfo,
     時: isCronSettingLiteralInfo,

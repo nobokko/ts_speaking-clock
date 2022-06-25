@@ -46,6 +46,19 @@ export function arraylize<T>(func: TypeConclude<T>): (TypeConclude<Array<T>>) {
     };
 }
 
+export function intersection<S, T = S, U = S>(funcA: TypeConclude<S>, funcB?: TypeConclude<T>, funcC?: TypeConclude<U>): TypeConclude<S & T & U> {
+    const funcs: ((value: any) => boolean)[] = [funcA];
+    if (funcB) {
+        funcs.push(funcB);
+    }
+    if (funcC) {
+        funcs.push(funcC);
+    }
+    return (value: any): value is S & T & U => {
+        return funcs.every(func => func(value));
+    };
+}
+
 export function union<S, T = S, U = S>(funcA: TypeConclude<S>, funcB?: TypeConclude<T>, funcC?: TypeConclude<U>): TypeConclude<S | T | U> {
     const funcs: ((value: any) => boolean)[] = [funcA];
     if (funcB) {
