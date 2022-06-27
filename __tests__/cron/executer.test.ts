@@ -20,32 +20,39 @@ beforeEach(() => {
 });
 
 describe('append', () => {
-    it('* * * * * string', () => {
+    it('* * * * * string', async () => {
         const result = CronExecuter.append('* * * * *', () => { });
+        await CronExecuter.testOnlyExports.vars.promises.schedule;
         expect(CronExecuter.testOnlyExports.vars.schedule.length).toBe(1);
         expect(CronExecuter.testOnlyExports.vars.schedule[0].nextDate.getHours()).toBe(22);
     });
 
-    it('* * * * * CronTime', () => {
+    it('* * * * * CronTime', async () => {
         const result = CronExecuter.append(CronSettingParser.parse('* * * * *'), () => { });
+        await CronExecuter.testOnlyExports.vars.promises.schedule;
         expect(CronExecuter.testOnlyExports.vars.schedule.length).toBe(1);
         expect(CronExecuter.testOnlyExports.vars.schedule[0].nextDate.getHours()).toBe(22);
     });
 });
 
 describe('remove', () => {
-    it('remove', () => {
+    it('remove', async () => {
         const id1 = CronExecuter.append('* * * * *', () => { });
         const id2 = CronExecuter.append('* * * * *', () => { });
         const id3 = CronExecuter.append('* * * * *', () => { });
+        await CronExecuter.testOnlyExports.vars.promises.schedule;
         expect(CronExecuter.testOnlyExports.vars.schedule.length).toBe(3);
         CronExecuter.remove(id2);
+        await CronExecuter.testOnlyExports.vars.promises.schedule;
         expect(CronExecuter.testOnlyExports.vars.schedule.length).toBe(2);
         CronExecuter.remove(id2);
+        await CronExecuter.testOnlyExports.vars.promises.schedule;
         expect(CronExecuter.testOnlyExports.vars.schedule.length).toBe(2);
         CronExecuter.remove(100);
+        await CronExecuter.testOnlyExports.vars.promises.schedule;
         expect(CronExecuter.testOnlyExports.vars.schedule.length).toBe(2);
         CronExecuter.remove(id1, id3);
+        await CronExecuter.testOnlyExports.vars.promises.schedule;
         expect(CronExecuter.testOnlyExports.vars.schedule.length).toBe(0);
     });
 });
@@ -140,7 +147,7 @@ describe('scheduleSort', () => {
         CronExecuter.append('0 1 1 1 *', () => { }, 'p2', 'first');
         CronExecuter.append('30 1 1 1 *', () => { }, 'p3', 'middle');
         CronExecuter.testOnlyExports.scheduleSort();
-        await CronExecuter.testOnlyExports.vars.promises.scheduleSorting;
+        await CronExecuter.testOnlyExports.vars.promises.schedule;
         expect(CronExecuter.testOnlyExports.vars.schedule.length).toBe(3);
         expect(CronExecuter.testOnlyExports.vars.schedule[0].label).toBe('p2');
         expect(CronExecuter.testOnlyExports.vars.schedule[1].label).toBe('p3');
@@ -153,9 +160,10 @@ describe('start__exec', () => {
         CronExecuter.testOnlyExports.start__exec();
     });
 
-    it('start__exec', () => {
+    it('start__exec', async () => {
         CronExecuter.append('* * * * *', () => { });
         CronExecuter.append('* * * * *', (schedule) => { });
+        await CronExecuter.testOnlyExports.vars.promises.schedule;
         expect(CronExecuter.testOnlyExports.vars.schedule[0].nextDate.getMinutes()).toBe(49);
         expect(CronExecuter.testOnlyExports.vars.schedule[1].nextDate.getMinutes()).toBe(49);
         CronExecuter.testOnlyExports.start__exec();
@@ -170,30 +178,37 @@ describe('start', () => {
         expect(CronExecuter.status().started).toBe(false);
         CronExecuter.start();
         expect(CronExecuter.status().started).toBe(true);
-        CronExecuter.append('* * * 8 *', () => { });
+        CronExecuter.append('* * * 8 *', () => { }, 'x1');
         CronExecuter.append('* * * 7 *', () => { }, 'this');
-        CronExecuter.append('* * * 9 *', () => { });
-        await CronExecuter.testOnlyExports.vars.promises.scheduleSorting;
+        CronExecuter.append('* * * 9 *', () => { }, 'x2');
+        let prev = Promise.resolve();
+        while (prev != CronExecuter.testOnlyExports.vars.promises.schedule) {
+            prev = CronExecuter.testOnlyExports.vars.promises.schedule;
+            await CronExecuter.testOnlyExports.vars.promises.schedule;
+        }
         expect(CronExecuter.testOnlyExports.vars.schedule[0].label).toBe('this');
     });
 });
 
 describe('status', () => {
-    it('status', () => {
+    it('status', async () => {
         expect(CronExecuter.status().schedule.length).toBe(0);
         const task = () => { };
         const id = CronExecuter.append('* * * * *', task);
+        await CronExecuter.testOnlyExports.vars.promises.schedule;
         expect(CronExecuter.status().schedule.length).toBe(1);
         CronExecuter.remove(id);
+        await CronExecuter.testOnlyExports.vars.promises.schedule;
         expect(CronExecuter.status().schedule.length).toBe(0);
     });
 });
 
 describe('info', () => {
-    it('info exists', () => {
+    it('info exists', async () => {
         expect(CronExecuter.status().schedule.length).toBe(0);
         const task = () => { };
         const id = CronExecuter.append('1,6 2,7 3,8 4,9 5', task);
+        await CronExecuter.testOnlyExports.vars.promises.schedule;
         expect(CronExecuter.status().schedule.length).toBe(1);
         const info = CronExecuter.info(id);
         expect(info.id).toBe(id);
@@ -205,10 +220,11 @@ describe('info', () => {
         expect(info.cronTime.曜日.original).toBe('5');
     });
 
-    it('info not exist', () => {
+    it('info not exist', async () => {
         expect(CronExecuter.status().schedule.length).toBe(0);
         const task = () => { };
         const id = CronExecuter.append('1,6 2,7 3,8 4,9 5', task);
+        await CronExecuter.testOnlyExports.vars.promises.schedule;
         expect(CronExecuter.status().schedule.length).toBe(1);
         const info = CronExecuter.info(id + 100);
         expect(info).toBe(null);
