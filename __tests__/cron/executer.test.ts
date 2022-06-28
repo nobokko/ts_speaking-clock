@@ -12,7 +12,7 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
-    CronExecuter.testOnlyExports.vars.schedule.length = 0;
+    CronExecuter.testOnlyExports.vars.nextDateSortedScheduleIds.length = 0;
 
     for (const eventHandler of Object.values(CronExecuter.testOnlyExports.vars.eventHandlers)) {
         eventHandler.length = 0;
@@ -22,38 +22,56 @@ beforeEach(() => {
 describe('append', () => {
     it('* * * * * string', async () => {
         const result = CronExecuter.append('* * * * *', () => { });
-        await CronExecuter.testOnlyExports.vars.promises.schedule;
-        expect(CronExecuter.testOnlyExports.vars.schedule.length).toBe(1);
-        expect(CronExecuter.testOnlyExports.vars.schedule[0].nextDate.getHours()).toBe(22);
+        await CronExecuter.testOnlyExports.vars.promises.scheduleList;
+        expect(result in CronExecuter.testOnlyExports.vars.scheduleList).toBe(true);
+        expect(CronExecuter.testOnlyExports.vars.nextDateSortedScheduleIds.length).toBe(1);
+        expect(CronExecuter.testOnlyExports.vars.scheduleList[result].nextDate.getHours()).toBe(22);
     });
 
     it('* * * * * CronTime', async () => {
         const result = CronExecuter.append(CronSettingParser.parse('* * * * *'), () => { });
-        await CronExecuter.testOnlyExports.vars.promises.schedule;
-        expect(CronExecuter.testOnlyExports.vars.schedule.length).toBe(1);
-        expect(CronExecuter.testOnlyExports.vars.schedule[0].nextDate.getHours()).toBe(22);
+        await CronExecuter.testOnlyExports.vars.promises.scheduleList;
+        expect(result in CronExecuter.testOnlyExports.vars.scheduleList).toBe(true);
+        expect(CronExecuter.testOnlyExports.vars.nextDateSortedScheduleIds.length).toBe(1);
+        expect(CronExecuter.testOnlyExports.vars.scheduleList[result].nextDate.getHours()).toBe(22);
     });
 });
 
 describe('remove', () => {
     it('remove', async () => {
-        const id1 = CronExecuter.append('* * * * *', () => { });
-        const id2 = CronExecuter.append('* * * * *', () => { });
-        const id3 = CronExecuter.append('* * * * *', () => { });
-        await CronExecuter.testOnlyExports.vars.promises.schedule;
-        expect(CronExecuter.testOnlyExports.vars.schedule.length).toBe(3);
+        const id1 = CronExecuter.append('* * * * *', () => { }, 'id1');
+        const id2 = CronExecuter.append('* * * * *', () => { }, 'id2');
+        const id3 = CronExecuter.append('* * * * *', () => { }, 'id3');
+        await CronExecuter.testOnlyExports.vars.promises.scheduleList;
+        expect(id1 in CronExecuter.testOnlyExports.vars.scheduleList).toBe(true);
+        expect(id2 in CronExecuter.testOnlyExports.vars.scheduleList).toBe(true);
+        expect(id3 in CronExecuter.testOnlyExports.vars.scheduleList).toBe(true);
+        expect(CronExecuter.testOnlyExports.vars.nextDateSortedScheduleIds.length).toBe(3);
+
         CronExecuter.remove(id2);
-        await CronExecuter.testOnlyExports.vars.promises.schedule;
-        expect(CronExecuter.testOnlyExports.vars.schedule.length).toBe(2);
+        await CronExecuter.testOnlyExports.vars.promises.scheduleList;
+        expect(id2 in CronExecuter.testOnlyExports.vars.scheduleList).toBe(false);
+        expect(CronExecuter.testOnlyExports.vars.nextDateSortedScheduleIds.length).toBe(2);
+
+        // 同じIDをもう一度
         CronExecuter.remove(id2);
-        await CronExecuter.testOnlyExports.vars.promises.schedule;
-        expect(CronExecuter.testOnlyExports.vars.schedule.length).toBe(2);
-        CronExecuter.remove(100);
-        await CronExecuter.testOnlyExports.vars.promises.schedule;
-        expect(CronExecuter.testOnlyExports.vars.schedule.length).toBe(2);
+        await CronExecuter.testOnlyExports.vars.promises.scheduleList;
+        expect(CronExecuter.testOnlyExports.vars.nextDateSortedScheduleIds.length).toBe(2);
+
+        // ※testでidが1000まで採番されない想定
+        CronExecuter.remove(1000);
+        await CronExecuter.testOnlyExports.vars.promises.scheduleList;
+        expect(1000 in CronExecuter.testOnlyExports.vars.scheduleList).toBe(false);
+        expect(id1 in CronExecuter.testOnlyExports.vars.scheduleList).toBe(true);
+        expect(id3 in CronExecuter.testOnlyExports.vars.scheduleList).toBe(true);
+        expect(CronExecuter.testOnlyExports.vars.nextDateSortedScheduleIds.length).toBe(2);
+
+        // 複数
         CronExecuter.remove(id1, id3);
-        await CronExecuter.testOnlyExports.vars.promises.schedule;
-        expect(CronExecuter.testOnlyExports.vars.schedule.length).toBe(0);
+        await CronExecuter.testOnlyExports.vars.promises.scheduleList;
+        expect(id1 in CronExecuter.testOnlyExports.vars.scheduleList).toBe(false);
+        expect(id3 in CronExecuter.testOnlyExports.vars.scheduleList).toBe(false);
+        expect(CronExecuter.testOnlyExports.vars.nextDateSortedScheduleIds.length).toBe(0);
     });
 });
 
@@ -147,11 +165,11 @@ describe('scheduleSort', () => {
         CronExecuter.append('0 1 1 1 *', () => { }, 'p2', 'first');
         CronExecuter.append('30 1 1 1 *', () => { }, 'p3', 'middle');
         CronExecuter.testOnlyExports.scheduleSort();
-        await CronExecuter.testOnlyExports.vars.promises.schedule;
-        expect(CronExecuter.testOnlyExports.vars.schedule.length).toBe(3);
-        expect(CronExecuter.testOnlyExports.vars.schedule[0].label).toBe('p2');
-        expect(CronExecuter.testOnlyExports.vars.schedule[1].label).toBe('p3');
-        expect(CronExecuter.testOnlyExports.vars.schedule[2].label).toBe('p1');
+        await CronExecuter.testOnlyExports.vars.promises.scheduleList;
+        expect(CronExecuter.testOnlyExports.vars.nextDateSortedScheduleIds.length).toBe(3);
+        expect(CronExecuter.testOnlyExports.vars.scheduleList[CronExecuter.testOnlyExports.vars.nextDateSortedScheduleIds[0]].label).toBe('p2');
+        expect(CronExecuter.testOnlyExports.vars.scheduleList[CronExecuter.testOnlyExports.vars.nextDateSortedScheduleIds[1]].label).toBe('p3');
+        expect(CronExecuter.testOnlyExports.vars.scheduleList[CronExecuter.testOnlyExports.vars.nextDateSortedScheduleIds[2]].label).toBe('p1');
     });
 });
 
@@ -163,12 +181,12 @@ describe('start__exec', () => {
     it('start__exec', async () => {
         CronExecuter.append('* * * * *', () => { });
         CronExecuter.append('* * * * *', (schedule) => { });
-        await CronExecuter.testOnlyExports.vars.promises.schedule;
-        expect(CronExecuter.testOnlyExports.vars.schedule[0].nextDate.getMinutes()).toBe(49);
-        expect(CronExecuter.testOnlyExports.vars.schedule[1].nextDate.getMinutes()).toBe(49);
+        await CronExecuter.testOnlyExports.vars.promises.scheduleList;
+        expect(CronExecuter.testOnlyExports.vars.scheduleList[CronExecuter.testOnlyExports.vars.nextDateSortedScheduleIds[0]].nextDate.getMinutes()).toBe(49);
+        expect(CronExecuter.testOnlyExports.vars.scheduleList[CronExecuter.testOnlyExports.vars.nextDateSortedScheduleIds[1]].nextDate.getMinutes()).toBe(49);
         CronExecuter.testOnlyExports.start__exec();
-        CronExecuter.testOnlyExports.vars.schedule[0].nextDate.setMinutes(48);
-        CronExecuter.testOnlyExports.vars.schedule[1].nextDate.setMinutes(48);
+        CronExecuter.testOnlyExports.vars.scheduleList[CronExecuter.testOnlyExports.vars.nextDateSortedScheduleIds[0]].nextDate.setMinutes(48);
+        CronExecuter.testOnlyExports.vars.scheduleList[CronExecuter.testOnlyExports.vars.nextDateSortedScheduleIds[1]].nextDate.setMinutes(48);
         CronExecuter.testOnlyExports.start__exec();
     });
 });
@@ -182,11 +200,12 @@ describe('start', () => {
         CronExecuter.append('* * * 7 *', () => { }, 'this');
         CronExecuter.append('* * * 9 *', () => { }, 'x2');
         let prev = Promise.resolve();
-        while (prev != CronExecuter.testOnlyExports.vars.promises.schedule) {
-            prev = CronExecuter.testOnlyExports.vars.promises.schedule;
-            await CronExecuter.testOnlyExports.vars.promises.schedule;
+        await CronExecuter.testOnlyExports.vars.promises.scheduleList;
+        while (prev != CronExecuter.testOnlyExports.vars.promises.scheduleList) {
+            prev = CronExecuter.testOnlyExports.vars.promises.scheduleList;
+            await CronExecuter.testOnlyExports.vars.promises.scheduleList;
         }
-        expect(CronExecuter.testOnlyExports.vars.schedule[0].label).toBe('this');
+        expect(CronExecuter.testOnlyExports.vars.scheduleList[CronExecuter.testOnlyExports.vars.nextDateSortedScheduleIds[0]].label).toBe('this');
     });
 });
 
@@ -195,10 +214,10 @@ describe('status', () => {
         expect(CronExecuter.status().schedule.length).toBe(0);
         const task = () => { };
         const id = CronExecuter.append('* * * * *', task);
-        await CronExecuter.testOnlyExports.vars.promises.schedule;
+        await CronExecuter.testOnlyExports.vars.promises.scheduleList;
         expect(CronExecuter.status().schedule.length).toBe(1);
         CronExecuter.remove(id);
-        await CronExecuter.testOnlyExports.vars.promises.schedule;
+        await CronExecuter.testOnlyExports.vars.promises.scheduleList;
         expect(CronExecuter.status().schedule.length).toBe(0);
     });
 });
@@ -208,7 +227,7 @@ describe('info', () => {
         expect(CronExecuter.status().schedule.length).toBe(0);
         const task = () => { };
         const id = CronExecuter.append('1,6 2,7 3,8 4,9 5', task);
-        await CronExecuter.testOnlyExports.vars.promises.schedule;
+        await CronExecuter.testOnlyExports.vars.promises.scheduleList;
         expect(CronExecuter.status().schedule.length).toBe(1);
         const info = CronExecuter.info(id);
         expect(info.id).toBe(id);
@@ -224,7 +243,7 @@ describe('info', () => {
         expect(CronExecuter.status().schedule.length).toBe(0);
         const task = () => { };
         const id = CronExecuter.append('1,6 2,7 3,8 4,9 5', task);
-        await CronExecuter.testOnlyExports.vars.promises.schedule;
+        await CronExecuter.testOnlyExports.vars.promises.scheduleList;
         expect(CronExecuter.status().schedule.length).toBe(1);
         const info = CronExecuter.info(id + 100);
         expect(info).toBe(null);

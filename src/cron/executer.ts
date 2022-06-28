@@ -51,8 +51,10 @@ const isCronLastExecuteTime = Guard.customizeType({
     曜日: Guard.isNumber,
 });
 
+type CronScheduleId = number;
+
 type CronScheduleInfo = {
-    id: number,
+    id: CronScheduleId,
     label?: string,
     description?: string,
     cronTime: Parser.CronTime,
@@ -79,19 +81,19 @@ const isCronRoughCloneScheduleInfo = Guard.customizeType({
     nextDate: Guard.isString,
 });
 
-const schedule: CronScheduleInfo[] = [];
+const scheduleList: { [id: CronScheduleId]: CronScheduleInfo } = {};
+
+const nextDateSortedScheduleIds: CronScheduleId[] = [];
 
 const promises = {
-    schedule: Promise.resolve(),
+    scheduleList: Promise.resolve(),
 };
 
 function chainPromise(promise: keyof typeof promises, func: () => void) {
     promises[promise] = promises[promise].then(func);
 }
 
-function chainSchedulePromise(func: () => void) {
-    chainPromise("schedule", func);
-}
+const chainScheduleListPromise = (func: () => void) => chainPromise("scheduleList", func);
 
 function start__time() {
     const now = currentDate();
@@ -103,38 +105,39 @@ function start__time() {
 }
 
 function start__exec() {
-    chainSchedulePromise(() => {
-        if (schedule.length == 0) {
+    chainScheduleListPromise(() => {
+        if (nextDateSortedScheduleIds.length == 0) {
             return;
         }
         const now = currentDate();
         now.setMilliseconds(1);
-        const firstNonExecIndex = schedule.findIndex((targetSchedule, index) => {
-            if (targetSchedule.nextDate.getTime() > now.getTime()) {
+        const firstNonExecIndex = nextDateSortedScheduleIds.findIndex((targetScheduleId, index) => {
+            if (scheduleList[targetScheduleId].nextDate.getTime() > now.getTime()) {
                 return true;
             }
             const lastCronExecute = {
-                分: targetSchedule.nextDate.getMinutes(),
-                時: targetSchedule.nextDate.getHours(),
-                日: targetSchedule.nextDate.getDate(),
-                月: targetSchedule.nextDate.getMonth() + 1,
-                曜日: targetSchedule.nextDate.getDay(),
+                分: scheduleList[targetScheduleId].nextDate.getMinutes(),
+                時: scheduleList[targetScheduleId].nextDate.getHours(),
+                日: scheduleList[targetScheduleId].nextDate.getDate(),
+                月: scheduleList[targetScheduleId].nextDate.getMonth() + 1,
+                曜日: scheduleList[targetScheduleId].nextDate.getDay(),
             };
             Promise.all(eventHandlers.beforeExecute.map(listener => new Promise((resolve) => { resolve(listener()); })))
                 .then(() => {
                     return new Promise((resolve) => {
-                        if (isCronTaskA(targetSchedule.task)) {
-                            resolve(targetSchedule.task());
-                        } else if (isCronTaskB(targetSchedule.task)) {
-                            resolve(targetSchedule.task({ ...targetSchedule.cronTime }));
+                        const schedule = scheduleList[targetScheduleId];
+                        if (isCronTaskA(schedule.task)) {
+                            resolve(schedule.task());
+                        } else if (isCronTaskB(schedule.task)) {
+                            resolve(schedule.task({ ...schedule.cronTime }));
                         }
                     });
                 })
                 .then(() => {
                     return Promise.all(eventHandlers.afterExecute.map(listener => new Promise((resolve) => { resolve(listener()); })));
                 });
-            schedule[index].nextDate = nextTime(schedule[index].cronTime, now, lastCronExecute);
-            schedule[index].lastCronExecute = lastCronExecute;
+            scheduleList[targetScheduleId].nextDate = nextTime(scheduleList[targetScheduleId].cronTime, now, lastCronExecute);
+            scheduleList[targetScheduleId].lastCronExecute = lastCronExecute;
             // console.debug(`next : ${targetSchedule.nextDate}`)
         });
         if (firstNonExecIndex != 0) {
@@ -160,17 +163,15 @@ export function status() {
     return {
         started: started,
         sequence: sequence,
-        schedule: schedule.map(info => info.id),
+        schedule: [...nextDateSortedScheduleIds],
     };
 }
 
 export function info(id: number): Readonly<CronRoughCloneScheduleInfo> {
-    for (const scheduleInfo of schedule) {
-        if (scheduleInfo.id == id) {
-            const result = JSON.parse(JSON.stringify(scheduleInfo));
-            if (isCronRoughCloneScheduleInfo(result)) {
-                return result;
-            }
+    if (id in scheduleList) {
+        const result = JSON.parse(JSON.stringify(scheduleList[id]));
+        if (isCronRoughCloneScheduleInfo(result)) {
+            return result;
         }
     }
 
@@ -178,13 +179,13 @@ export function info(id: number): Readonly<CronRoughCloneScheduleInfo> {
 }
 
 function scheduleSort() {
-    chainSchedulePromise(() => {
+    chainScheduleListPromise(() => {
         // console.debug("chainSchedulePromise scheduleSort.");
-        const before = schedule.map(s => `${s.id}_${s.nextDate.toString()}`).join(',');
-        schedule.sort((a, b) => {
-            return a.nextDate.getTime() - b.nextDate.getTime();
+        const before = nextDateSortedScheduleIds.map(id => `${id}_${scheduleList[id].nextDate.toString()}`).join(',');
+        nextDateSortedScheduleIds.sort((aId, bId) => {
+            return scheduleList[aId].nextDate.getTime() - scheduleList[bId].nextDate.getTime();
         });
-        const after = schedule.map(s => `${s.id}_${s.nextDate.toString()}`).join(',');
+        const after = nextDateSortedScheduleIds.map(id => `${id}_${scheduleList[id].nextDate.toString()}`).join(',');
         if (before != after) {
             new Promise(resolve => {
                 eventHandlers.update.forEach(listener => listener());
@@ -200,9 +201,10 @@ export function append(setting: string | Parser.CronTime, task: CronTask, label?
     const cronTime = typeof setting == 'string' ? Parser.parse(setting) : setting;
     const nextDate = nextTime(cronTime, currentDate());
     const id = sequence++;
-    chainSchedulePromise(() => {
+    chainScheduleListPromise(() => {
+        scheduleList[id] = { id: id, cronTime, task, label, description, nextDate };
         // console.debug("chainSchedulePromise append.");
-        schedule.push({ id: id, cronTime, task, label, description, nextDate });
+        nextDateSortedScheduleIds.push(id);
         // console.debug(schedule);
 
         if (started) {
@@ -214,17 +216,20 @@ export function append(setting: string | Parser.CronTime, task: CronTask, label?
 }
 
 export function remove(...ids: number[]) {
-    chainSchedulePromise(() => {
+    chainScheduleListPromise(() => {
         const targets: number[] = [];
-        schedule.forEach((info, index) => {
-            if (ids.indexOf(info.id) >= 0) {
+        nextDateSortedScheduleIds.forEach((id, index) => {
+            if (ids.indexOf(id) >= 0) {
                 targets.push(index);
             }
         });
         while (targets.length) {
             // const after = schedule.slice(targets.pop(), 1);
-            schedule.splice(targets.pop(), 1);
+            nextDateSortedScheduleIds.splice(targets.pop(), 1);
         }
+        ids.forEach(id => {
+            delete scheduleList[id];
+        });
         scheduleSort();
     });
 }
@@ -348,7 +353,8 @@ export const testOnlyExports = {
     nextTime,
     vars: {
         eventHandlers,
-        schedule,
+        nextDateSortedScheduleIds: nextDateSortedScheduleIds,
+        scheduleList: scheduleList,
         promises,
     },
 };
