@@ -5,6 +5,8 @@ const eventHandlers = {
     // xxx[Schedule]は省略する
     start: Array<CallableFunction>(),
     update: Array<CallableFunction>(),
+    beforeCheck: Array<CallableFunction>(),
+    afterCheck: Array<CallableFunction>(),
     beforeExecute: Array<CallableFunction>(),
     afterExecute: Array<CallableFunction>(),
 };
@@ -21,7 +23,7 @@ export function removeEventListener(event: CronEvent, listener: CallableFunction
 type CronTaskResult = void | Promise<any>;
 type CronTaskA = () => CronTaskResult;
 type CronTaskB = (cronTime: Parser.CronTime) => CronTaskResult;
-type CronTask = CronTaskA | CronTaskB;
+export type CronTask = CronTaskA | CronTaskB;
 
 function isCronTaskA(task: CronTask): task is CronTaskA {
     return task.length == 0;
@@ -105,6 +107,7 @@ function start__time() {
 }
 
 function start__exec() {
+    Promise.all(eventHandlers.beforeCheck.map(listener => new Promise((resolve) => { resolve(listener()); })))
     chainScheduleListPromise(() => {
         if (nextDateSortedScheduleIds.length == 0) {
             return;
@@ -122,7 +125,7 @@ function start__exec() {
                 月: scheduleList[targetScheduleId].nextDate.getMonth() + 1,
                 曜日: scheduleList[targetScheduleId].nextDate.getDay(),
             };
-            Promise.all(eventHandlers.beforeExecute.map(listener => new Promise((resolve) => { resolve(listener()); })))
+            Promise.all(eventHandlers.beforeExecute.map(listener => new Promise((resolve) => { resolve(listener(targetScheduleId)); })))
                 .then(() => {
                     return new Promise((resolve) => {
                         const schedule = scheduleList[targetScheduleId];
@@ -134,7 +137,7 @@ function start__exec() {
                     });
                 })
                 .then(() => {
-                    return Promise.all(eventHandlers.afterExecute.map(listener => new Promise((resolve) => { resolve(listener()); })));
+                    return Promise.all(eventHandlers.afterExecute.map(listener => new Promise((resolve) => { resolve(listener(targetScheduleId)); })));
                 });
             scheduleList[targetScheduleId].nextDate = nextTime(scheduleList[targetScheduleId].cronTime, now, lastCronExecute);
             scheduleList[targetScheduleId].lastCronExecute = lastCronExecute;
@@ -144,7 +147,9 @@ function start__exec() {
             scheduleSort();
         }
     });
-    setTimeout(start__exec, start__time());
+    const sleepTime = start__time();
+    Promise.all(eventHandlers.afterCheck.map(listener => new Promise((resolve) => { resolve(listener(sleepTime)); })))
+    setTimeout(start__exec, sleepTime);
 }
 
 let started = false;
@@ -183,7 +188,8 @@ function scheduleSort() {
         // console.debug("chainSchedulePromise scheduleSort.");
         const before = nextDateSortedScheduleIds.map(id => `${id}_${scheduleList[id].nextDate.toString()}`).join(',');
         nextDateSortedScheduleIds.sort((aId, bId) => {
-            return scheduleList[aId].nextDate.getTime() - scheduleList[bId].nextDate.getTime();
+            const c1 = scheduleList[aId].nextDate.getTime() - scheduleList[bId].nextDate.getTime();
+            return c1 != 0 ? c1 : (aId - bId);
         });
         const after = nextDateSortedScheduleIds.map(id => `${id}_${scheduleList[id].nextDate.toString()}`).join(',');
         if (before != after) {

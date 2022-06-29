@@ -3,19 +3,56 @@ import * as CronExecuter from "./cron/executer";
 
 const synth = window.speechSynthesis;
 
+const speakTaskA = (text: string | (() => string), log?: string, afterTask?: (params: { text: string, log?: string }) => void): CronExecuter.CronTask => {
+    return () => {
+        const te_xt = typeof text == "function" ? text() : text;
+        console.log(log ?? te_xt);
+        const utterThis = new SpeechSynthesisUtterance(te_xt);
+        synth.speak(utterThis);
+        if (afterTask) {
+            afterTask({ text: te_xt, log });
+        }
+    };
+};
+
+const speakTaskB = (text: string): CronExecuter.CronTask => {
+    return (crontime) => {
+        console.log(crontime);
+        const utterThis = new SpeechSynthesisUtterance(text);
+        synth.speak(utterThis);
+    };
+};
+
+const speakTaskC = (text: string, log?: string): CronExecuter.CronTask => {
+    return () => new Promise((resolve) => {
+        console.log(log ?? text);
+        const utterThis = new SpeechSynthesisUtterance(text);
+        synth.speak(utterThis);
+        resolve(null);
+    });
+};
+
 CronExecuter.addEventListener("start", () => {
     synth.speak(new SpeechSynthesisUtterance(`開始します。`));
 });
 
-CronExecuter.addEventListener("beforeExecute", () => {
-    console.debug('begin task.');
+CronExecuter.addEventListener("beforeCheck", () => {
+    console.debug('begin check.', new Date());
 });
 
-CronExecuter.addEventListener("afterExecute", () => {
-    console.debug('end task.');
+CronExecuter.addEventListener("afterCheck", (sleepTime: number) => {
+    console.debug('end check.', sleepTime, new Date());
 });
 
-const formatLastCronExecute = (lastCronExecute:{[key:string]:(string|number)}) => {
+CronExecuter.addEventListener("beforeExecute", (id: number) => {
+    console.debug('begin task.', id, new Date());
+});
+
+CronExecuter.addEventListener("afterExecute", (id: number) => {
+    console.debug('end task.', id, new Date());
+});
+
+const formatLastCronExecute = (lastCronExecute: { [key: string]: (string | number) }) => {
     if (!lastCronExecute) {
         return 'undefined';
     }
@@ -47,44 +84,24 @@ CronExecuter.addEventListener("update", () => {
     });
 });
 
-CronExecuter.append('0 * * * *', () => {
-    console.log('時報');
+CronExecuter.append('0 * * * *', speakTaskA(() => {
     const dt = new Date();
-    const utterThis = new SpeechSynthesisUtterance(`${dt.getHours()}時です。`);
-    synth.speak(utterThis);
+    return `${dt.getHours()}時です。`;
+}, '時報', (params) => {
     globalThis.document.querySelector('body').appendChild((() => {
         const e = globalThis.document.createElement('div');
-        e.innerText = utterThis.text;
+        e.innerText = params.text;
         return e;
     })());
-}, '時報');
+}), '時報');
 
-CronExecuter.append('30 * * * *', () => {
-    console.log('半時報');
-    const utterThis = new SpeechSynthesisUtterance(`30分です。`);
-    synth.speak(utterThis);
-}, '半時報');
+CronExecuter.append('30 * * * *', speakTaskA(`30分です。`, '半時報'), '半時報');
 
-CronExecuter.append('15,45 * * * *', (cronsetting) => {
-    console.log(cronsetting);
-    const utterThis = new SpeechSynthesisUtterance(`やっほー。`);
-    synth.speak(utterThis);
-}, '四半時報');
+CronExecuter.append('15,45 * * * *', speakTaskB(`やっほー。`), '四半時報');
 
-CronExecuter.append('*/5 * * * *', () => {
-    return new Promise((resolve, reject) => {
-        console.log('五分毎');
-        const utterThis = new SpeechSynthesisUtterance(`五分経過。`);
-        synth.speak(utterThis);
-        resolve(null);
-    });
-}, '五分毎');
+CronExecuter.append('*/5 * * * *', speakTaskC(`五分経過。`, '五分毎'), '五分毎');
 
-CronExecuter.append('*/3 * * * *', () => {
-    console.log('三分毎');
-    const utterThis = new SpeechSynthesisUtterance(`三分経過。`);
-    synth.speak(utterThis);
-}, '三分毎');
+CronExecuter.append('*/3 * * * *', speakTaskA(`三分経過。`, '三分毎'), '三分毎');
 
 CronExecuter.append('*/7 * * * *', () => {
     console.log('7分毎');
