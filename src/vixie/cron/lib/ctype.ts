@@ -1,0 +1,15 @@
+export const isascii = (c: number) => c <= 0o177;
+// int islower(int c);
+export const islower = (c:number) => 0;
+// int toupper(int c);
+export const toupper = (c:number) => 0;
+// int isspace(int c);
+export const isspace = (c:number) => String.fromCharCode(c) === ' ' ? 1 : 0;
+// int isprint(int c);
+export const isprint = (c:number) => c;
+// int isalnum(int c);
+export const isalnum = (c:number) => String.fromCharCode(c).match(/^[0-9a-zA-Z]$/) ? c : 0;
+// int isdigit(int c);
+export const isdigit = (c:number) => String.fromCharCode(c).match(/^[0-9]$/) ? c : 0;
+// int isalpha(int c);
+export const isalpha = (c:number) => String.fromCharCode(c).match(/^[a-zA-Z]$/) ? c : 0;
